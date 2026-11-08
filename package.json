@@ -1,7 +1,7 @@
 {
   "name": "madbot",
   "productName": "MadBot",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Self-contained MadBot control room for alerts, overlays, lights, and voice.",
   "main": "src/main.js",
@@ -30,6 +30,9 @@
       "overlays/**/*",
       "assets/**/*",
       "package.json"
+    ],
+    "extraResources": [
+      { "from": "engine", "to": "engine" }
     ],
     "win": {
       "icon": "build/icon.ico",

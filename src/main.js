@@ -1,9 +1,10 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { startOverlay } = require('./overlay');
 const { flashLights, scanLights } = require('./lights');
 const { speak } = require('./voice');
+const shorts = require('./shorts');
 
 const PORT = 4721;
 
@@ -213,3 +214,37 @@ ipcMain.handle('lights-scan', async () => {
 ipcMain.handle('lights-test', async () => flashLights(settings));
 
 ipcMain.handle('voice-test', async (_event, text) => speak(mainWindow, settings, text || 'MadBot is live. Lights and voice are on.'));
+
+ipcMain.handle('shorts-status', () => shorts.status());
+
+ipcMain.handle('shorts-pick', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Pick a VOD',
+    filters: [{ name: 'Video', extensions: ['mp4', 'mkv', 'mov', 'webm'] }],
+    properties: ['openFile'],
+  });
+  return result.canceled ? '' : result.filePaths[0];
+});
+
+ipcMain.handle('shorts-open', () => shell.openPath(shorts.outputDir()));
+
+ipcMain.handle('shorts-setup', async (event) => {
+  const log = (line) => event.sender.send('shorts-log', line);
+  try {
+    const next = await shorts.setup(log);
+    return { ok: true, ...next };
+  } catch (error) {
+    log(error.message);
+    return { ok: false, error: error.message };
+  }
+});
+
+ipcMain.handle('shorts-run', async (event, job) => {
+  const log = (line) => event.sender.send('shorts-log', line);
+  try {
+    return await shorts.startJob(job, log);
+  } catch (error) {
+    log(error.message);
+    return { ok: false, error: error.message };
+  }
+});

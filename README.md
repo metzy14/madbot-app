@@ -6,7 +6,7 @@ The window icon, taskbar icon, and installer icon are the Dog Kennel logo.
 
 ## Windows
 
-Download `MadBot.exe` from the latest release and double-click it. Leave it open while you stream.
+Download `MadBot.exe` from the latest release and double-click it. Open **Shorts** to cut a VOD into vertical clips. The first time, click **Set up cutter** and leave the window open. Then pick a video or paste a Kick link and click **Make shorts**. Files land in your Videos folder, in `MadBot Shorts`.
 
 In OBS, add a Browser source:
 

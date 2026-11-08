@@ -1,5 +1,6 @@
-const pages = ['Alerts', 'Chat', 'Goals', 'Commands', 'Lights', 'Voice', 'Overlays'];
+const pages = ['Alerts', 'Chat', 'Goals', 'Commands', 'Shorts', 'Lights', 'Voice', 'Overlays'];
 let lightNote = '';
+let shortsLog = 'The first time, click Set up cutter. Then pick a VOD or paste a Kick link.';
 let state = null;
 let page = 'Alerts';
 
@@ -233,6 +234,85 @@ function renderVoice() {
   return box;
 }
 
+function renderShorts() {
+  const box = card('Clipping and shorts');
+  const note = document.createElement('p');
+  note.id = 'shorts-status';
+  note.textContent = 'Checking the cutter...';
+  const file = document.createElement('input');
+  file.placeholder = 'Video file, or leave blank and use a link';
+  const link = document.createElement('input');
+  link.placeholder = 'https://kick.com/maddogmetzy/videos/...';
+  const topic = document.createElement('input');
+  topic.placeholder = 'Topic, like Labs raid or last lap';
+  const game = document.createElement('select');
+  [['tarkov', 'Escape from Tarkov'], ['iracing', 'iRacing'], ['fps', 'Competitive FPS'], ['battle_royale', 'Battle Royale'], ['mmo_rpg', 'MMO / RPG'], ['sports', 'Sports'], ['generic', 'Generic']].forEach(([id, label]) => {
+    const option = document.createElement('option');
+    option.value = id;
+    option.textContent = label;
+    game.appendChild(option);
+  });
+  const job = document.createElement('select');
+  [['shorts', 'Shorts from the best moments'], ['clip', 'Fast clip, last N seconds'], ['long', 'Long highlight reel'], ['analyze', 'Find moments only']].forEach(([id, label]) => {
+    const option = document.createElement('option');
+    option.value = id;
+    option.textContent = label;
+    job.appendChild(option);
+  });
+  const count = document.createElement('input');
+  count.type = 'number';
+  count.value = '6';
+  count.min = '1';
+  const seconds = document.createElement('input');
+  seconds.type = 'number';
+  seconds.value = '60';
+  const quality = document.createElement('select');
+  ['draft', 'medium', 'high'].forEach((name) => {
+    const option = document.createElement('option');
+    option.value = name;
+    option.textContent = name;
+    if (name === 'medium') option.selected = true;
+    quality.appendChild(option);
+  });
+  const log = document.createElement('textarea');
+  log.id = 'shorts-log';
+  log.rows = 10;
+  log.readOnly = true;
+  log.value = shortsLog;
+  const row = document.createElement('div');
+  row.className = 'row';
+  function button(label, className, action) {
+    const el = document.createElement('button');
+    el.textContent = label;
+    if (className) el.className = className;
+    el.onclick = action;
+    return el;
+  }
+  row.append(
+    button('Set up cutter', '', async () => { note.textContent = 'Setting up. Leave this window open.'; await window.madbot.shortsSetup(); note.textContent = 'Setup finished. Check the log if it failed.'; }),
+    button('Pick a video', '', async () => { file.value = await window.madbot.shortsPick(); }),
+    button('Make shorts', 'primary', async () => {
+      note.textContent = 'Working. A long VOD can take a while.';
+      const result = await window.madbot.shortsRun({
+        input: file.value.trim() || link.value.trim(),
+        command: job.value,
+        game: game.value,
+        topic: topic.value,
+        count: Number(count.value),
+        seconds: Number(seconds.value),
+        quality: quality.value,
+      });
+      note.textContent = result.ok ? `Done. ${result.output}` : (result.error || 'The cutter did not finish.');
+    }),
+    button('Open folder', '', () => window.madbot.shortsOpen())
+  );
+  box.append(note, file, link, game, job, topic, count, seconds, quality, row, log);
+  window.madbot.shortsStatus().then((info) => {
+    note.textContent = info.ready ? `Cutter is ready. Shorts save to ${info.output}` : 'Cutter is not set up yet.';
+  });
+  return box;
+}
+
 function render() {
   renderNav();
   main.innerHTML = '';
@@ -241,7 +321,7 @@ function render() {
   const lede = document.createElement('p');
   lede.textContent = 'Desktop control room for alerts, chat, goals, and OBS overlays.';
   main.append(title, lede);
-  const view = { Alerts: renderAlerts, Chat: renderChat, Goals: renderGoals, Commands: renderCommands, Lights: renderLights, Voice: renderVoice, Overlays: renderOverlays }[page]();
+  const view = { Alerts: renderAlerts, Chat: renderChat, Goals: renderGoals, Commands: renderCommands, Shorts: renderShorts, Lights: renderLights, Voice: renderVoice, Overlays: renderOverlays }[page]();
   main.appendChild(view);
 }
 
@@ -257,6 +337,15 @@ window.madbot.onSpeak((payload) => {
   utter.rate = Number(payload.rate) || 1;
   speechSynthesis.cancel();
   speechSynthesis.speak(utter);
+});
+
+window.madbot.onShortsLog((line) => {
+  shortsLog += `\n${line}`;
+  const box = document.getElementById('shorts-log');
+  if (box) {
+    box.value = shortsLog;
+    box.scrollTop = box.scrollHeight;
+  }
 });
 
 window.madbot.boot().then((boot) => {
