@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      html, body { margin: 0; background: transparent; color: white; font-family: "Segoe UI", sans-serif; }
+      .goal { width: 640px; padding: 16px 18px; }
+      .label { letter-spacing: 0.14em; text-transform: uppercase; font-size: 12px; color: #b6ff8a; }
+      .bar { height: 18px; border-radius: 99px; background: rgba(0,0,0,0.55); overflow: hidden; margin-top: 8px; }
+      .bar span { display: block; height: 100%; background: #53fc18; }
+      b { font-size: 28px; }
+    </style>
+  </head>
+  <body>
+    <div class="goal">
+      <div class="label" id="label">Goal</div>
+      <b id="count"></b>
+      <div class="bar"><span id="fill"></span></div>
+    </div>
+    <script>
+      const socket = new WebSocket(`ws://${location.host}`);
+      socket.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        if (message.type !== 'state' || !message.goal) return;
+        const goal = message.goal;
+        const pct = Math.max(0, Math.min(100, Math.round((goal.current / (goal.target || 1)) * 100)));
+        document.getElementById('label').textContent = goal.label;
+        document.getElementById('count').textContent = `${goal.current} / ${goal.target}`;
+        document.getElementById('fill').style.width = pct + '%';
+      };
+    </script>
+  </body>
+</html>

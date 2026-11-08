@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      html, body { margin: 0; background: transparent; color: white; font-family: "Segoe UI", sans-serif; }
+      .box { width: 420px; padding: 12px; }
+      .line { margin: 0 0 8px; font-size: 22px; text-shadow: 0 2px 8px #000; }
+      b { color: #53fc18; }
+    </style>
+  </head>
+  <body>
+    <div class="box" id="log"></div>
+    <script>
+      const log = document.getElementById('log');
+      function paint(lines) {
+        log.innerHTML = (lines || []).slice(-8).map((line) => `<div class="line"><b>${line.name}</b> ${line.text}</div>`).join('');
+      }
+      const socket = new WebSocket(`ws://${location.host}`);
+      socket.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        if (message.type === 'state') paint(message.chat);
+      };
+    </script>
+  </body>
+</html>

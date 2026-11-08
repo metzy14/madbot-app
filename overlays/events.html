@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      html, body { margin: 0; background: transparent; color: white; font-family: "Segoe UI", sans-serif; }
+      ul { list-style: none; padding: 12px; margin: 0; width: 460px; }
+      li { margin: 0 0 8px; font-size: 22px; text-shadow: 0 2px 8px #000; }
+    </style>
+  </head>
+  <body>
+    <ul id="list"></ul>
+    <script>
+      const list = document.getElementById('list');
+      const socket = new WebSocket(`ws://${location.host}`);
+      socket.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        if (message.type !== 'state') return;
+        list.innerHTML = (message.events || []).map((item) => `<li>${item.text}</li>`).join('');
+      };
+    </script>
+  </body>
+</html>
