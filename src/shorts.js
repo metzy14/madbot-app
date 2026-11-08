@@ -188,4 +188,4 @@ function stop() {
   current = null;
 }
 
-module.exports = { status, setup, startJob, stop, outputDir };
+module.exports = { status, setup, startJob, stop, outputDir, ffmpegExe };

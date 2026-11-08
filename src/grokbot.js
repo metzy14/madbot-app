@@ -39,7 +39,8 @@ async function routeClips({ grokbot, output, since, topic, game, source, onLog }
     topic: topic || 'highlights',
     game: game || 'generic',
     vod: source || '',
-    instruction: 'These shorts were just cut. For each file, write a title, hook, caption, and hashtags for TikTok, Shorts, Reels, and X. Do not post anything until I approve it.',
+    instruction: grokbot.instruction || 'These shorts were just cut. For each file, write a title, hook, caption, and hashtags for TikTok, Shorts, Reels, and X. Post them to the connected social accounts. If a watch link is included, use that video.',
+    links: grokbot.links || [],
     clips,
   };
   const body = JSON.stringify(payload);

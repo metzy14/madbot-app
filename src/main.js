@@ -1,10 +1,11 @@
-const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, dialog, globalShortcut } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { startOverlay } = require('./overlay');
 const { flashLights, scanLights } = require('./lights');
 const { speak } = require('./voice');
 const shorts = require('./shorts');
+const live = require('./live');
 
 const PORT = 4721;
 
@@ -43,6 +44,11 @@ const DEFAULTS = {
     voiceId: '',
   },
   grokbot: { url: '', key: '' },
+  live: { seconds: 45, caption: 'Live from the kennel. #kick #shorts' },
+  socials: {
+    discordWebhook: '',
+    x: { appKey: '', appSecret: '', accessToken: '', accessSecret: '' },
+  },
 };
 
 function settingsPath() {
@@ -69,6 +75,12 @@ function loadSettings() {
     },
     voice: { ...DEFAULTS.voice, ...(saved.voice || {}) },
     grokbot: { ...DEFAULTS.grokbot, ...(saved.grokbot || {}) },
+    live: { ...DEFAULTS.live, ...(saved.live || {}) },
+    socials: {
+      ...DEFAULTS.socials,
+      ...(saved.socials || {}),
+      x: { ...DEFAULTS.socials.x, ...(saved.socials?.x || {}) },
+    },
     commands: saved.commands || DEFAULTS.commands,
     events: saved.events || [],
     chat: saved.chat || [],
@@ -160,8 +172,11 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
+  live.stop();
   if (process.platform !== 'darwin') app.quit();
 });
+
+app.on('will-quit', () => globalShortcut.unregisterAll());
 
 ipcMain.handle('boot', () => ({
   settings,
@@ -245,6 +260,54 @@ ipcMain.handle('shorts-run', async (event, job) => {
   const log = (line) => event.sender.send('shorts-log', line);
   try {
     return await shorts.startJob(job, log);
+  } catch (error) {
+    log(error.message);
+    return { ok: false, error: error.message };
+  }
+});
+
+function liveOptions() {
+  return {
+    seconds: settings.live?.seconds || 45,
+    caption: settings.live?.caption || '',
+    discordWebhook: settings.socials?.discordWebhook || '',
+    x: settings.socials?.x || {},
+    grokbot: settings.grokbot || {},
+  };
+}
+
+async function clipFromShortcut() {
+  const log = (line) => mainWindow?.webContents.send('live-log', line);
+  try {
+    await live.clipNow({ ...liveOptions(), onLog: log });
+  } catch (error) {
+    log(error.message);
+  }
+}
+
+ipcMain.handle('live-start', async (event) => {
+  const log = (line) => event.sender.send('live-log', line);
+  try {
+    const next = await live.start(settings.kickChannel || 'maddogmetzy', log);
+    globalShortcut.unregister('CommandOrControl+Shift+C');
+    globalShortcut.register('CommandOrControl+Shift+C', clipFromShortcut);
+    log('Hotkey is Ctrl+Shift+C.');
+    return { ok: true, ...next };
+  } catch (error) {
+    log(error.message);
+    return { ok: false, error: error.message };
+  }
+});
+
+ipcMain.handle('live-stop', () => {
+  globalShortcut.unregister('CommandOrControl+Shift+C');
+  return live.stop();
+});
+
+ipcMain.handle('live-clip', async (event) => {
+  const log = (line) => event.sender.send('live-log', line);
+  try {
+    return await live.clipNow({ ...liveOptions(), onLog: log });
   } catch (error) {
     log(error.message);
     return { ok: false, error: error.message };

@@ -1,6 +1,7 @@
-const pages = ['Alerts', 'Chat', 'Goals', 'Commands', 'Shorts', 'Lights', 'Voice', 'Overlays'];
+const pages = ['Alerts', 'Chat', 'Goals', 'Commands', 'Live', 'Shorts', 'Lights', 'Voice', 'Overlays'];
 let lightNote = '';
 let shortsLog = 'The first time, click Set up cutter. Then pick a VOD or paste a Kick link.';
+let liveLog = 'Go live on Kick, click Listen, then Clip now. Ctrl+Shift+C does the same thing.';
 let state = null;
 let page = 'Alerts';
 
@@ -234,6 +235,69 @@ function renderVoice() {
   return box;
 }
 
+function renderLive() {
+  const box = card('Live clips');
+  const note = document.createElement('p');
+  note.textContent = `Listening to kick.com/${state.settings.kickChannel || 'your channel'}.`;
+  state.settings.live = state.settings.live || { seconds: 45, caption: '' };
+  state.settings.socials = state.settings.socials || { discordWebhook: '', x: {} };
+  state.settings.socials.x = state.settings.socials.x || {};
+  const seconds = document.createElement('input');
+  seconds.type = 'number';
+  seconds.value = state.settings.live.seconds || 45;
+  seconds.onchange = async () => { state.settings.live.seconds = Number(seconds.value); await persist(); };
+  const caption = document.createElement('input');
+  caption.placeholder = 'Caption for the post';
+  caption.value = state.settings.live.caption || '';
+  caption.onchange = async () => { state.settings.live.caption = caption.value; await persist(); };
+  const discord = document.createElement('input');
+  discord.placeholder = 'Discord webhook URL';
+  discord.value = state.settings.socials.discordWebhook || '';
+  discord.onchange = async () => { state.settings.socials.discordWebhook = discord.value.trim(); await persist(); };
+  const x = state.settings.socials.x;
+  const keys = [
+    ['appKey', 'X API key'],
+    ['appSecret', 'X API secret'],
+    ['accessToken', 'X access token'],
+    ['accessSecret', 'X access secret'],
+  ].map(([key, placeholder]) => {
+    const input = document.createElement('input');
+    input.placeholder = placeholder;
+    input.value = x[key] || '';
+    input.onchange = async () => { x[key] = input.value.trim(); await persist(); };
+    return input;
+  });
+  const log = document.createElement('textarea');
+  log.id = 'live-log';
+  log.rows = 8;
+  log.readOnly = true;
+  log.value = liveLog;
+  const row = document.createElement('div');
+  row.className = 'row';
+  function button(label, className, action) {
+    const el = document.createElement('button');
+    el.textContent = label;
+    if (className) el.className = className;
+    el.onclick = action;
+    return el;
+  }
+  row.append(
+    button('Listen', 'primary', async () => {
+      note.textContent = 'Connecting to the live stream...';
+      const result = await window.madbot.liveStart();
+      note.textContent = result.ok ? 'Listening. Clip when the moment happens.' : result.error;
+    }),
+    button('Clip now', 'primary', async () => {
+      note.textContent = 'Cutting and posting...';
+      const result = await window.madbot.liveClip();
+      note.textContent = result.ok ? 'Clip posted.' : (result.error || 'Clip failed.');
+    }),
+    button('Stop', '', async () => { await window.madbot.liveStop(); note.textContent = 'Stopped.'; })
+  );
+  box.append(note, field('Kick channel', state.settings.kickChannel, async (value) => { state.settings.kickChannel = value.trim(); await persist(); }), seconds, caption, discord, ...keys, row, log);
+  return box;
+}
+
 function renderShorts() {
   const box = card('Clipping and shorts');
   const note = document.createElement('p');
@@ -334,7 +398,7 @@ function render() {
   const lede = document.createElement('p');
   lede.textContent = 'Desktop control room for alerts, chat, goals, and OBS overlays.';
   main.append(title, lede);
-  const view = { Alerts: renderAlerts, Chat: renderChat, Goals: renderGoals, Commands: renderCommands, Shorts: renderShorts, Lights: renderLights, Voice: renderVoice, Overlays: renderOverlays }[page]();
+  const view = { Alerts: renderAlerts, Chat: renderChat, Goals: renderGoals, Commands: renderCommands, Live: renderLive, Shorts: renderShorts, Lights: renderLights, Voice: renderVoice, Overlays: renderOverlays }[page]();
   main.appendChild(view);
 }
 
@@ -350,6 +414,15 @@ window.madbot.onSpeak((payload) => {
   utter.rate = Number(payload.rate) || 1;
   speechSynthesis.cancel();
   speechSynthesis.speak(utter);
+});
+
+window.madbot.onLiveLog((line) => {
+  liveLog += `\n${line}`;
+  const box = document.getElementById('live-log');
+  if (box) {
+    box.value = liveLog;
+    box.scrollTop = box.scrollHeight;
+  }
 });
 
 window.madbot.onShortsLog((line) => {
