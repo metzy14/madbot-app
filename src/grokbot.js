@@ -39,7 +39,7 @@ async function routeClips({ grokbot, output, since, topic, game, source, onLog }
     topic: topic || 'highlights',
     game: game || 'generic',
     vod: source || '',
-    instruction: grokbot.instruction || 'These shorts were just cut for YouTube, X, TikTok, and Instagram. Do not post them to Discord.',
+    instruction: grokbot.instruction || 'These shorts are for YouTube, X, and Instagram. Do not post them to Discord or TikTok.',
     links: grokbot.links || [],
     clips,
   };

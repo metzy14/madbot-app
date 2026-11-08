@@ -6,7 +6,7 @@ const { flashLights, scanLights } = require('./lights');
 const { speak } = require('./voice');
 const shorts = require('./shorts');
 const live = require('./live');
-const { connectYouTube } = require('./socials');
+const { connectYouTube, connectX, connectInstagram, loginChoices } = require('./socials');
 
 const PORT = 4721;
 
@@ -47,9 +47,8 @@ const DEFAULTS = {
   grokbot: { url: '', key: '' },
   live: { seconds: 45, caption: 'Live from the kennel. #kick #shorts' },
   socials: {
-    x: { appKey: '', appSecret: '', accessToken: '', accessSecret: '' },
-    youtube: { clientId: '', clientSecret: '', refreshToken: '' },
-    tiktok: { accessToken: '' },
+    x: { accessToken: '', refreshToken: '' },
+    youtube: { refreshToken: '' },
     instagram: { accessToken: '', userId: '' },
   },
 };
@@ -84,7 +83,6 @@ function loadSettings() {
       ...(saved.socials || {}),
       x: { ...DEFAULTS.socials.x, ...(saved.socials?.x || {}) },
       youtube: { ...DEFAULTS.socials.youtube, ...(saved.socials?.youtube || {}) },
-      tiktok: { ...DEFAULTS.socials.tiktok, ...(saved.socials?.tiktok || {}) },
       instagram: { ...DEFAULTS.socials.instagram, ...(saved.socials?.instagram || {}) },
     },
     commands: saved.commands || DEFAULTS.commands,
@@ -278,7 +276,6 @@ function liveOptions() {
     caption: settings.live?.caption || '',
     youtube: settings.socials?.youtube || {},
     x: settings.socials?.x || {},
-    tiktok: settings.socials?.tiktok || {},
     instagram: settings.socials?.instagram || {},
     grokbot: settings.grokbot || {},
   };
@@ -293,13 +290,38 @@ async function clipFromShortcut() {
   }
 }
 
-ipcMain.handle('youtube-connect', async (_event, pasted) => {
+ipcMain.handle('login-ready', () => ({
+  ...loginChoices(),
+  youtubeOn: Boolean(settings.socials.youtube?.refreshToken),
+  xOn: Boolean(settings.socials.x?.accessToken),
+  instagramOn: Boolean(settings.socials.instagram?.accessToken),
+}));
+
+ipcMain.handle('youtube-connect', async () => {
   try {
-    settings.socials.youtube = { ...settings.socials.youtube, ...(pasted || {}) };
-    const refreshToken = await connectYouTube(settings.socials.youtube);
-    settings.socials.youtube.refreshToken = refreshToken;
+    settings.socials.youtube.refreshToken = await connectYouTube();
     saveSettings(settings);
-    return { ok: true, settings };
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error.message };
+  }
+});
+
+ipcMain.handle('x-connect', async () => {
+  try {
+    settings.socials.x = { ...settings.socials.x, ...(await connectX()) };
+    saveSettings(settings);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error.message };
+  }
+});
+
+ipcMain.handle('instagram-connect', async () => {
+  try {
+    settings.socials.instagram = await connectInstagram();
+    saveSettings(settings);
+    return { ok: true };
   } catch (error) {
     return { ok: false, error: error.message };
   }
@@ -330,7 +352,6 @@ ipcMain.handle('live-clip', async (event, extra) => {
     ...extra.socials,
     x: { ...settings.socials.x, ...(extra.socials.x || {}) },
     youtube: { ...settings.socials.youtube, ...(extra.socials.youtube || {}) },
-    tiktok: { ...settings.socials.tiktok, ...(extra.socials.tiktok || {}) },
     instagram: { ...settings.socials.instagram, ...(extra.socials.instagram || {}) },
   };
   if (extra?.live) settings.live = { ...settings.live, ...extra.live };

@@ -91,7 +91,7 @@ function runFfmpeg(args) {
   });
 }
 
-async function clipNow({ seconds, caption, youtube, x, tiktok, instagram, grokbot, onLog }) {
+async function clipNow({ seconds, caption, youtube, x, instagram, grokbot, onLog }) {
   if (!recorder || !liveDir) throw new Error('Start listening before you clip.');
   const parts = newestParts(seconds);
   if (parts.length < 2) throw new Error('Not enough live video yet. Wait a few more seconds.');
@@ -111,12 +111,12 @@ async function clipNow({ seconds, caption, youtube, x, tiktok, instagram, grokbo
   ]);
   onLog(`Saved ${file}`);
   const text = caption || `Live from kick.com/${channelName}`;
-  const links = await publishClip({ file, text, youtube, x, tiktok, instagram, onLog });
+  const links = await publishClip({ file, text, youtube, x, instagram, onLog });
   const routed = await routeClips({
     grokbot: {
       ...(grokbot || {}),
       links,
-      instruction: 'MadBot posted this live clip to YouTube, X, TikTok, and Instagram. Do not post it to Discord.',
+      instruction: 'MadBot made this live clip for YouTube, X, and Instagram. Do not post it to Discord or TikTok.',
     },
     output: folder,
     since: started,

@@ -194,7 +194,6 @@ async function startJob(job, onLog) {
         text: job.topic || 'New clip',
         youtube: socials.youtube,
         x: socials.x,
-        tiktok: socials.tiktok,
         instagram: socials.instagram,
         onLog,
       });

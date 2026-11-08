@@ -19,6 +19,9 @@ contextBridge.exposeInMainWorld('madbot', {
   liveStart: () => ipcRenderer.invoke('live-start'),
   liveStop: () => ipcRenderer.invoke('live-stop'),
   liveClip: (extra) => ipcRenderer.invoke('live-clip', extra),
-  youtubeConnect: (youtube) => ipcRenderer.invoke('youtube-connect', youtube),
+  loginReady: () => ipcRenderer.invoke('login-ready'),
+  youtubeConnect: () => ipcRenderer.invoke('youtube-connect'),
+  xConnect: () => ipcRenderer.invoke('x-connect'),
+  instagramConnect: () => ipcRenderer.invoke('instagram-connect'),
   onLiveLog: (callback) => ipcRenderer.on('live-log', (_event, line) => callback(line)),
 });

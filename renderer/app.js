@@ -1,7 +1,7 @@
 const pages = ['Alerts', 'Chat', 'Goals', 'Commands', 'Live', 'Shorts', 'Lights', 'Voice', 'Overlays'];
 let lightNote = '';
 let shortsLog = 'The first time, click Set up cutter. Then pick a VOD or paste a Kick link.';
-let liveLog = 'Go live on Kick, click Listen, then Clip now. Ctrl+Shift+C does the same thing.';
+let liveLog = 'Go live, click Listen, then Clip now. The clip opens on YouTube, X, and Instagram.';
 let state = null;
 let page = 'Alerts';
 
@@ -238,42 +238,13 @@ function renderVoice() {
 function renderLive() {
   const box = card('Live clips');
   const note = document.createElement('p');
-  note.textContent = `Listening to kick.com/${state.settings.kickChannel || 'your channel'}.`;
-  state.settings.live = state.settings.live || { seconds: 45, caption: '' };
-  state.settings.socials = state.settings.socials || {};
-  const socials = state.settings.socials;
-  socials.x = socials.x || {};
-  socials.youtube = socials.youtube || {};
-  socials.tiktok = socials.tiktok || {};
-  socials.instagram = socials.instagram || {};
-  function secret(target, key, placeholder) {
-    const input = document.createElement('input');
-    input.placeholder = placeholder;
-    input.value = target[key] || '';
-    input.onchange = async () => { target[key] = input.value.trim(); await persist(); };
-    return input;
-  }
-  const seconds = document.createElement('input');
-  seconds.type = 'number';
-  seconds.value = state.settings.live.seconds || 45;
-  seconds.onchange = async () => { state.settings.live.seconds = Number(seconds.value); await persist(); };
+  note.textContent = 'Click Listen when you are live. Click Clip now when the moment happens.';
+  state.settings.live = state.settings.live || { seconds: 45, caption: 'Live from the kennel.' };
+  state.settings.socials = state.settings.socials || { x: {}, youtube: {}, instagram: {} };
   const caption = document.createElement('input');
-  caption.placeholder = 'Caption for the post';
+  caption.placeholder = 'Words that go with the clip';
   caption.value = state.settings.live.caption || '';
   caption.onchange = async () => { state.settings.live.caption = caption.value; await persist(); };
-  const x = socials.x;
-  const keys = [
-    secret(socials.youtube, 'clientId', 'YouTube client ID'),
-    secret(socials.youtube, 'clientSecret', 'YouTube client secret'),
-    secret(socials.youtube, 'refreshToken', 'YouTube refresh token, or use Connect'),
-    secret(x, 'appKey', 'X API key'),
-    secret(x, 'appSecret', 'X API secret'),
-    secret(x, 'accessToken', 'X access token'),
-    secret(x, 'accessSecret', 'X access secret'),
-    secret(socials.tiktok, 'accessToken', 'TikTok access token'),
-    secret(socials.instagram, 'accessToken', 'Instagram access token'),
-    secret(socials.instagram, 'userId', 'Instagram account ID'),
-  ];
   const log = document.createElement('textarea');
   log.id = 'live-log';
   log.rows = 8;
@@ -288,33 +259,46 @@ function renderLive() {
     el.onclick = action;
     return el;
   }
+  const accounts = document.createElement('div');
+  accounts.className = 'row';
+  window.madbot.loginReady().then((ready) => {
+    const add = (label, key, on, connect) => {
+      if (!ready[key]) return;
+      accounts.append(button(on ? `${label} is on` : `Log in to ${label}`, on ? '' : 'primary', async () => {
+        note.textContent = `A ${label} window is opening. Log in, click Allow, then come back.`;
+        const result = await connect();
+        note.textContent = result.ok ? `${label} is ready.` : result.error;
+      }));
+    };
+    add('YouTube', 'youtube', ready.youtubeOn, () => window.madbot.youtubeConnect());
+    add('X', 'x', ready.xOn, () => window.madbot.xConnect());
+    add('Instagram', 'instagram', ready.instagramOn, () => window.madbot.instagramConnect());
+  });
   row.append(
-    button('Connect YouTube', '', async () => {
-      note.textContent = 'A Google window is opening. Sign in, then come back.';
-      const result = await window.madbot.youtubeConnect({
-        clientId: socials.youtube.clientId,
-        clientSecret: socials.youtube.clientSecret,
-      });
-      if (result.settings) state.settings = result.settings;
-      note.textContent = result.ok ? 'YouTube is connected.' : result.error;
-    }),
     button('Listen', 'primary', async () => {
       note.textContent = 'Connecting to the live stream...';
       const result = await window.madbot.liveStart();
-      note.textContent = result.ok ? 'Listening. Clip when the moment happens.' : result.error;
+      note.textContent = result.ok ? 'Listening. Click Clip now when it happens.' : result.error;
     }),
     button('Clip now', 'primary', async () => {
-      note.textContent = 'Cutting and posting...';
+      note.textContent = 'Making the clip...';
       const result = await window.madbot.liveClip({
         live: state.settings.live,
         socials: state.settings.socials,
         grokbot: state.settings.grokbot,
       });
-      note.textContent = result.ok ? 'Clip posted.' : (result.error || 'Clip failed.');
+      note.textContent = result.ok ? 'Clip is ready.' : (result.error || 'Clip failed.');
     }),
     button('Stop', '', async () => { await window.madbot.liveStop(); note.textContent = 'Stopped.'; })
   );
-  box.append(note, field('Kick channel', state.settings.kickChannel, async (value) => { state.settings.kickChannel = value.trim(); await persist(); }), seconds, caption, ...keys, row, log);
+  box.append(
+    note,
+    field('Kick channel', state.settings.kickChannel, async (value) => { state.settings.kickChannel = value.trim(); await persist(); }),
+    caption,
+    accounts,
+    row,
+    log
+  );
   return box;
 }
 
@@ -358,16 +342,7 @@ function renderShorts() {
     if (name === 'medium') option.selected = true;
     quality.appendChild(option);
   });
-  const grok = state.settings.grokbot || { url: '', key: '' };
-  state.settings.grokbot = grok;
-  const hook = document.createElement('input');
-  hook.placeholder = 'Grok Bot webhook URL';
-  hook.value = grok.url || '';
-  hook.onchange = async () => { grok.url = hook.value.trim(); await persist(); };
-  const secret = document.createElement('input');
-  secret.placeholder = 'Grok Bot key';
-  secret.value = grok.key || '';
-  secret.onchange = async () => { grok.key = secret.value.trim(); await persist(); };
+  state.settings.grokbot = state.settings.grokbot || { url: '', key: '' };
   const log = document.createElement('textarea');
   log.id = 'shorts-log';
   log.rows = 10;
@@ -395,16 +370,14 @@ function renderShorts() {
         count: Number(count.value),
         seconds: Number(seconds.value),
         quality: quality.value,
-        grokbot: { url: hook.value.trim(), key: secret.value.trim() },
+        grokbot: state.settings.grokbot,
         socials: state.settings.socials,
       });
-      note.textContent = result.routed?.ok
-        ? `Done. Sent ${result.routed.count} clips to Grok Bot.`
-        : (result.ok ? `Done. ${result.output}` : (result.error || 'The cutter did not finish.'));
+      note.textContent = result.ok ? 'Done. The clips are in your Videos folder.' : (result.error || 'The cutter did not finish.');
     }),
     button('Open folder', '', () => window.madbot.shortsOpen())
   );
-  box.append(note, file, link, game, job, topic, count, seconds, quality, hook, secret, row, log);
+  box.append(note, file, link, game, job, topic, count, seconds, quality, row, log);
   window.madbot.shortsStatus().then((info) => {
     note.textContent = info.ready ? `Cutter is ready. Shorts save to ${info.output}` : 'Cutter is not set up yet.';
   });
