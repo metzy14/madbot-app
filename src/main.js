@@ -6,6 +6,7 @@ const { flashLights, scanLights } = require('./lights');
 const { speak } = require('./voice');
 const shorts = require('./shorts');
 const live = require('./live');
+const { connectYouTube } = require('./socials');
 
 const PORT = 4721;
 
@@ -46,8 +47,10 @@ const DEFAULTS = {
   grokbot: { url: '', key: '' },
   live: { seconds: 45, caption: 'Live from the kennel. #kick #shorts' },
   socials: {
-    discordWebhook: '',
     x: { appKey: '', appSecret: '', accessToken: '', accessSecret: '' },
+    youtube: { clientId: '', clientSecret: '', refreshToken: '' },
+    tiktok: { accessToken: '' },
+    instagram: { accessToken: '', userId: '' },
   },
 };
 
@@ -80,6 +83,9 @@ function loadSettings() {
       ...DEFAULTS.socials,
       ...(saved.socials || {}),
       x: { ...DEFAULTS.socials.x, ...(saved.socials?.x || {}) },
+      youtube: { ...DEFAULTS.socials.youtube, ...(saved.socials?.youtube || {}) },
+      tiktok: { ...DEFAULTS.socials.tiktok, ...(saved.socials?.tiktok || {}) },
+      instagram: { ...DEFAULTS.socials.instagram, ...(saved.socials?.instagram || {}) },
     },
     commands: saved.commands || DEFAULTS.commands,
     events: saved.events || [],
@@ -270,8 +276,10 @@ function liveOptions() {
   return {
     seconds: settings.live?.seconds || 45,
     caption: settings.live?.caption || '',
-    discordWebhook: settings.socials?.discordWebhook || '',
+    youtube: settings.socials?.youtube || {},
     x: settings.socials?.x || {},
+    tiktok: settings.socials?.tiktok || {},
+    instagram: settings.socials?.instagram || {},
     grokbot: settings.grokbot || {},
   };
 }
@@ -284,6 +292,18 @@ async function clipFromShortcut() {
     log(error.message);
   }
 }
+
+ipcMain.handle('youtube-connect', async (_event, pasted) => {
+  try {
+    settings.socials.youtube = { ...settings.socials.youtube, ...(pasted || {}) };
+    const refreshToken = await connectYouTube(settings.socials.youtube);
+    settings.socials.youtube.refreshToken = refreshToken;
+    saveSettings(settings);
+    return { ok: true, settings };
+  } catch (error) {
+    return { ok: false, error: error.message };
+  }
+});
 
 ipcMain.handle('live-start', async (event) => {
   const log = (line) => event.sender.send('live-log', line);
@@ -304,7 +324,18 @@ ipcMain.handle('live-stop', () => {
   return live.stop();
 });
 
-ipcMain.handle('live-clip', async (event) => {
+ipcMain.handle('live-clip', async (event, extra) => {
+  if (extra?.socials) settings.socials = {
+    ...settings.socials,
+    ...extra.socials,
+    x: { ...settings.socials.x, ...(extra.socials.x || {}) },
+    youtube: { ...settings.socials.youtube, ...(extra.socials.youtube || {}) },
+    tiktok: { ...settings.socials.tiktok, ...(extra.socials.tiktok || {}) },
+    instagram: { ...settings.socials.instagram, ...(extra.socials.instagram || {}) },
+  };
+  if (extra?.live) settings.live = { ...settings.live, ...extra.live };
+  if (extra?.grokbot) settings.grokbot = { ...settings.grokbot, ...extra.grokbot };
+  if (extra) saveSettings(settings);
   const log = (line) => event.sender.send('live-log', line);
   try {
     return await live.clipNow({ ...liveOptions(), onLog: log });

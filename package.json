@@ -1,7 +1,7 @@
 {
   "name": "madbot",
   "productName": "MadBot",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "private": true,
   "description": "Self-contained MadBot control room for alerts, overlays, lights, and voice.",
   "main": "src/main.js",

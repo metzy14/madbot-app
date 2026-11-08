@@ -240,8 +240,19 @@ function renderLive() {
   const note = document.createElement('p');
   note.textContent = `Listening to kick.com/${state.settings.kickChannel || 'your channel'}.`;
   state.settings.live = state.settings.live || { seconds: 45, caption: '' };
-  state.settings.socials = state.settings.socials || { discordWebhook: '', x: {} };
-  state.settings.socials.x = state.settings.socials.x || {};
+  state.settings.socials = state.settings.socials || {};
+  const socials = state.settings.socials;
+  socials.x = socials.x || {};
+  socials.youtube = socials.youtube || {};
+  socials.tiktok = socials.tiktok || {};
+  socials.instagram = socials.instagram || {};
+  function secret(target, key, placeholder) {
+    const input = document.createElement('input');
+    input.placeholder = placeholder;
+    input.value = target[key] || '';
+    input.onchange = async () => { target[key] = input.value.trim(); await persist(); };
+    return input;
+  }
   const seconds = document.createElement('input');
   seconds.type = 'number';
   seconds.value = state.settings.live.seconds || 45;
@@ -250,23 +261,19 @@ function renderLive() {
   caption.placeholder = 'Caption for the post';
   caption.value = state.settings.live.caption || '';
   caption.onchange = async () => { state.settings.live.caption = caption.value; await persist(); };
-  const discord = document.createElement('input');
-  discord.placeholder = 'Discord webhook URL';
-  discord.value = state.settings.socials.discordWebhook || '';
-  discord.onchange = async () => { state.settings.socials.discordWebhook = discord.value.trim(); await persist(); };
-  const x = state.settings.socials.x;
+  const x = socials.x;
   const keys = [
-    ['appKey', 'X API key'],
-    ['appSecret', 'X API secret'],
-    ['accessToken', 'X access token'],
-    ['accessSecret', 'X access secret'],
-  ].map(([key, placeholder]) => {
-    const input = document.createElement('input');
-    input.placeholder = placeholder;
-    input.value = x[key] || '';
-    input.onchange = async () => { x[key] = input.value.trim(); await persist(); };
-    return input;
-  });
+    secret(socials.youtube, 'clientId', 'YouTube client ID'),
+    secret(socials.youtube, 'clientSecret', 'YouTube client secret'),
+    secret(socials.youtube, 'refreshToken', 'YouTube refresh token, or use Connect'),
+    secret(x, 'appKey', 'X API key'),
+    secret(x, 'appSecret', 'X API secret'),
+    secret(x, 'accessToken', 'X access token'),
+    secret(x, 'accessSecret', 'X access secret'),
+    secret(socials.tiktok, 'accessToken', 'TikTok access token'),
+    secret(socials.instagram, 'accessToken', 'Instagram access token'),
+    secret(socials.instagram, 'userId', 'Instagram account ID'),
+  ];
   const log = document.createElement('textarea');
   log.id = 'live-log';
   log.rows = 8;
@@ -282,6 +289,15 @@ function renderLive() {
     return el;
   }
   row.append(
+    button('Connect YouTube', '', async () => {
+      note.textContent = 'A Google window is opening. Sign in, then come back.';
+      const result = await window.madbot.youtubeConnect({
+        clientId: socials.youtube.clientId,
+        clientSecret: socials.youtube.clientSecret,
+      });
+      if (result.settings) state.settings = result.settings;
+      note.textContent = result.ok ? 'YouTube is connected.' : result.error;
+    }),
     button('Listen', 'primary', async () => {
       note.textContent = 'Connecting to the live stream...';
       const result = await window.madbot.liveStart();
@@ -289,12 +305,16 @@ function renderLive() {
     }),
     button('Clip now', 'primary', async () => {
       note.textContent = 'Cutting and posting...';
-      const result = await window.madbot.liveClip();
+      const result = await window.madbot.liveClip({
+        live: state.settings.live,
+        socials: state.settings.socials,
+        grokbot: state.settings.grokbot,
+      });
       note.textContent = result.ok ? 'Clip posted.' : (result.error || 'Clip failed.');
     }),
     button('Stop', '', async () => { await window.madbot.liveStop(); note.textContent = 'Stopped.'; })
   );
-  box.append(note, field('Kick channel', state.settings.kickChannel, async (value) => { state.settings.kickChannel = value.trim(); await persist(); }), seconds, caption, discord, ...keys, row, log);
+  box.append(note, field('Kick channel', state.settings.kickChannel, async (value) => { state.settings.kickChannel = value.trim(); await persist(); }), seconds, caption, ...keys, row, log);
   return box;
 }
 
@@ -376,6 +396,7 @@ function renderShorts() {
         seconds: Number(seconds.value),
         quality: quality.value,
         grokbot: { url: hook.value.trim(), key: secret.value.trim() },
+        socials: state.settings.socials,
       });
       note.textContent = result.routed?.ok
         ? `Done. Sent ${result.routed.count} clips to Grok Bot.`

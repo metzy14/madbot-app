@@ -4,6 +4,7 @@ const path = require('path');
 const zlib = require('zlib');
 const { app } = require('electron');
 const { routeClips } = require('./grokbot');
+const { publishClip } = require('./socials');
 
 const PYTHON_URL = 'https://www.python.org/ftp/python/3.12.8/python-3.12.8-embed-amd64.zip';
 const PIP_URL = 'https://bootstrap.pypa.io/get-pip.py';
@@ -145,8 +146,10 @@ async function startJob(job, onLog) {
   const spec = path.join(cutterDir(), 'job.json');
   fs.mkdirSync(cutterDir(), { recursive: true });
   const grokbot = job.grokbot || {};
+  const socials = job.socials || {};
   const clean = { ...job, output };
   delete clean.grokbot;
+  delete clean.socials;
   fs.writeFileSync(spec, JSON.stringify(clean));
   const env = { ...process.env, PYTHONPATH: engineDir(), PYTHONUNBUFFERED: '1' };
   const bin = path.join(cutterDir(), 'bin');
@@ -180,6 +183,22 @@ async function startJob(job, onLog) {
   } catch (error) {
     onLog(error.message);
     return { ok: true, output, routed: { ok: false, error: error.message } };
+  } finally {
+    const fresh = fs.readdirSync(output)
+      .filter((name) => name.endsWith('.mp4'))
+      .map((name) => path.join(output, name))
+      .filter((file) => fs.statSync(file).mtimeMs >= started - 2000);
+    for (const file of fresh) {
+      await publishClip({
+        file,
+        text: job.topic || 'New clip',
+        youtube: socials.youtube,
+        x: socials.x,
+        tiktok: socials.tiktok,
+        instagram: socials.instagram,
+        onLog,
+      });
+    }
   }
 }
 
