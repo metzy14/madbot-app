@@ -274,6 +274,16 @@ function renderShorts() {
     if (name === 'medium') option.selected = true;
     quality.appendChild(option);
   });
+  const grok = state.settings.grokbot || { url: '', key: '' };
+  state.settings.grokbot = grok;
+  const hook = document.createElement('input');
+  hook.placeholder = 'Grok Bot webhook URL';
+  hook.value = grok.url || '';
+  hook.onchange = async () => { grok.url = hook.value.trim(); await persist(); };
+  const secret = document.createElement('input');
+  secret.placeholder = 'Grok Bot key';
+  secret.value = grok.key || '';
+  secret.onchange = async () => { grok.key = secret.value.trim(); await persist(); };
   const log = document.createElement('textarea');
   log.id = 'shorts-log';
   log.rows = 10;
@@ -301,12 +311,15 @@ function renderShorts() {
         count: Number(count.value),
         seconds: Number(seconds.value),
         quality: quality.value,
+        grokbot: { url: hook.value.trim(), key: secret.value.trim() },
       });
-      note.textContent = result.ok ? `Done. ${result.output}` : (result.error || 'The cutter did not finish.');
+      note.textContent = result.routed?.ok
+        ? `Done. Sent ${result.routed.count} clips to Grok Bot.`
+        : (result.ok ? `Done. ${result.output}` : (result.error || 'The cutter did not finish.'));
     }),
     button('Open folder', '', () => window.madbot.shortsOpen())
   );
-  box.append(note, file, link, game, job, topic, count, seconds, quality, row, log);
+  box.append(note, file, link, game, job, topic, count, seconds, quality, hook, secret, row, log);
   window.madbot.shortsStatus().then((info) => {
     note.textContent = info.ready ? `Cutter is ready. Shorts save to ${info.output}` : 'Cutter is not set up yet.';
   });

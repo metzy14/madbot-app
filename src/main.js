@@ -42,6 +42,7 @@ const DEFAULTS = {
     apiKey: '',
     voiceId: '',
   },
+  grokbot: { url: '', key: '' },
 };
 
 function settingsPath() {
@@ -67,6 +68,7 @@ function loadSettings() {
       govee: { ...DEFAULTS.lights.govee, ...(saved.lights?.govee || {}) },
     },
     voice: { ...DEFAULTS.voice, ...(saved.voice || {}) },
+    grokbot: { ...DEFAULTS.grokbot, ...(saved.grokbot || {}) },
     commands: saved.commands || DEFAULTS.commands,
     events: saved.events || [],
     chat: saved.chat || [],

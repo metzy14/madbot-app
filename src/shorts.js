@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 const { app } = require('electron');
+const { routeClips } = require('./grokbot');
 
 const PYTHON_URL = 'https://www.python.org/ftp/python/3.12.8/python-3.12.8-embed-amd64.zip';
 const PIP_URL = 'https://bootstrap.pypa.io/get-pip.py';
@@ -143,10 +144,14 @@ async function startJob(job, onLog) {
   fs.mkdirSync(output, { recursive: true });
   const spec = path.join(cutterDir(), 'job.json');
   fs.mkdirSync(cutterDir(), { recursive: true });
-  fs.writeFileSync(spec, JSON.stringify({ ...job, output }));
+  const grokbot = job.grokbot || {};
+  const clean = { ...job, output };
+  delete clean.grokbot;
+  fs.writeFileSync(spec, JSON.stringify(clean));
   const env = { ...process.env, PYTHONPATH: engineDir(), PYTHONUNBUFFERED: '1' };
   const bin = path.join(cutterDir(), 'bin');
   env.PATH = `${bin}${path.delimiter}${env.PATH || ''}`;
+  const started = Date.now();
   onLog(`Saving shorts to ${output}`);
   await new Promise((resolve, reject) => {
     const child = spawn(python, [path.join(engineDir(), 'run_job.py'), spec], { env, windowsHide: true });
@@ -161,7 +166,21 @@ async function startJob(job, onLog) {
       else reject(new Error(`The cutter stopped (${code}).`));
     });
   });
-  return { ok: true, output };
+  try {
+    const routed = await routeClips({
+      grokbot,
+      output,
+      since: started,
+      topic: job.topic,
+      game: job.game,
+      source: job.input,
+      onLog,
+    });
+    return { ok: true, output, routed };
+  } catch (error) {
+    onLog(error.message);
+    return { ok: true, output, routed: { ok: false, error: error.message } };
+  }
 }
 
 function stop() {
