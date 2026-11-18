@@ -15,7 +15,7 @@ const DEFAULTS = {
   discord: 'https://discord.gg/thedogkennel',
   goal: { label: 'Follower goal', current: 1400, target: 2000 },
   alerts: {
-    follow: { enabled: true, title: '{name} followed', detail: 'Welcome to the kennel.', duration: 6000, color: '#2f9bff' },
+    follow: { enabled: true, title: '{name} followed', detail: 'Welcome to the kennel.', duration: 6000, color: '#1f8fe8' },
     sub: { enabled: true, title: '{name} subscribed', detail: 'Thank you for the sub.', duration: 7000, color: '#e0a526' },
     raid: { enabled: true, title: '{name} raided', detail: '{viewers} viewers incoming.', duration: 8000, color: '#ff5a4e' },
     host: { enabled: true, title: '{name} hosted', detail: 'Go show them love.', duration: 6000, color: '#b14dff' },
@@ -27,7 +27,7 @@ const DEFAULTS = {
     { name: '!goal', reply: 'Follower goal: {current} / {target}', enabled: true },
     { name: '!so', reply: 'Shoutout to {name}: https://kick.com/{name}', enabled: true },
   ],
-  theme: { accent: '#2f9bff', accent2: '#e0a526', chatSize: 22, chatFade: 0 },
+  theme: { accent: '#1f8fe8', accent2: '#c99434', chatSize: 22, chatFade: 0 },
   scene: { mode: 'off', title: 'Starting soon', subtitle: 'Grab a drink. The kennel opens shortly.', minutes: 5, endsAt: 0 },
   events: [],
   chat: [],

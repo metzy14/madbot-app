@@ -6,35 +6,29 @@
     <style>
       body { width: 100vw; height: 100vh; }
       canvas { position: fixed; inset: 0; pointer-events: none; }
-      .wrap { position: absolute; left: 50%; top: 16%; transform: translateX(-50%); width: max-content; max-width: 1800px; display: flex; flex-direction: column; align-items: center; --c: var(--accent); }
-      .badge { position: relative; width: 150px; height: 150px; border-radius: 34px; padding: 5px; background: conic-gradient(from 0deg, var(--c), var(--accent2), var(--c)); box-shadow: 0 0 60px color-mix(in srgb, var(--c) 70%, transparent); opacity: 0; transform: scale(0.2) rotate(-25deg); }
-      .badge img { width: 100%; height: 100%; display: block; border-radius: 30px; }
-      .badge::after { content: ""; position: absolute; inset: -18px; border-radius: 44px; border: 3px solid var(--c); opacity: 0; }
-      .card { position: relative; margin-top: -26px; min-width: 760px; max-width: 1300px; padding: 46px 64px 30px; border-radius: 28px; text-align: center; background: linear-gradient(180deg, rgba(20, 17, 12, 0.92), rgba(10, 9, 7, 0.92)); border: 2px solid color-mix(in srgb, var(--c) 60%, transparent); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 0 8px color-mix(in srgb, var(--c) 12%, transparent); overflow: hidden; opacity: 0; transform: translateY(40px) scaleY(0.6); }
-      .card::before { content: ""; position: absolute; top: 0; left: -40%; width: 30%; height: 100%; background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.18), transparent); transform: skewX(-20deg); }
-      .kind { display: inline-block; font-family: var(--ui); font-weight: 700; font-size: 20px; letter-spacing: 0.32em; text-transform: uppercase; color: #0b0a08; background: var(--c); padding: 6px 18px 6px 22px; border-radius: 999px; }
-      h1 { margin: 16px 0 0; font-family: var(--display); font-weight: 400; font-size: 92px; line-height: 1; letter-spacing: 0.01em; text-transform: uppercase; text-shadow: 0 6px 30px rgba(0, 0, 0, 0.6); }
-      h1 .name { color: var(--c); text-shadow: 0 0 30px color-mix(in srgb, var(--c) 60%, transparent); }
-      p { margin: 12px 0 0; font-size: 32px; font-weight: 500; color: #e9e1cf; }
-      .timer { position: absolute; left: 0; bottom: 0; height: 6px; width: 100%; background: linear-gradient(90deg, var(--accent2), var(--c)); transform-origin: left; }
-      .on .badge { animation: badge-in 0.7s cubic-bezier(.2, 1.5, .4, 1) forwards; }
-      .on .badge::after { animation: ring 1.2s 0.3s ease-out 2; }
-      .on .card { animation: card-in 0.6s 0.12s cubic-bezier(.2, 1.3, .4, 1) forwards; }
-      .on .card::before { animation: sweep 1.1s 0.6s ease forwards; }
+      .wrap { position: absolute; left: 50%; top: 14%; transform: translateX(-50%); width: max-content; max-width: 1800px; display: flex; flex-direction: column; align-items: center; --c: var(--accent); }
+      .badge { position: relative; z-index: 2; width: 150px; height: 150px; border-radius: 8px; box-shadow: 8px 8px 0 var(--c); opacity: 0; transform: translateY(-60px) rotate(-8deg); }
+      .badge img { width: 100%; height: 100%; display: block; border-radius: 8px; }
+      /* Mustard print with an offset in the alert's own color, like the logo's misregistered outline. */
+      .card { position: relative; margin-top: -30px; min-width: 760px; padding: 56px 70px 34px; border-radius: 8px; text-align: center; box-shadow: 14px 14px 0 var(--c), 14px 14px 0 3px var(--ink); opacity: 0; transform: scale(1.25); }
+      .kind { display: inline-block; font-family: var(--ui); font-weight: 800; font-stretch: 80%; font-size: 30px; color: var(--c); background: var(--ink); padding: 4px 20px 6px; border-radius: 4px; }
+      h1 { margin: 14px 0 0; font-family: var(--display); font-weight: 900; font-size: 130px; line-height: 0.85; color: var(--ink); white-space: nowrap; }
+      p { margin: 14px 0 0; font-size: 36px; font-weight: 600; color: var(--ink); }
+      .timer { position: absolute; left: 0; bottom: 0; height: 10px; width: 100%; background: var(--ink); transform-origin: left; border-radius: 0 0 0 8px; }
+      /* One orchestrated entrance: the card is struck onto the screen like a print. */
+      .on .badge { animation: drop 0.5s 0.25s cubic-bezier(.3, 1.5, .5, 1) forwards; }
+      .on .card { animation: strike 0.32s cubic-bezier(.5, 0, .7, 1) forwards; }
       .on .timer { animation: timer var(--dur) linear forwards; }
-      .on h1 .ch { display: inline-block; animation: pop 0.5s cubic-bezier(.2, 1.6, .4, 1) both; }
-      .off .badge { animation: badge-out 0.4s ease forwards; opacity: 1; transform: none; }
-      .off .card { animation: card-out 0.4s ease forwards; opacity: 1; transform: none; }
-      @keyframes badge-in { to { opacity: 1; transform: none; } }
-      @keyframes badge-out { to { opacity: 0; transform: scale(0.6) translateY(-30px); } }
-      @keyframes card-in { to { opacity: 1; transform: none; } }
-      @keyframes card-out { to { opacity: 0; transform: translateY(30px) scale(0.96); } }
-      @keyframes sweep { to { left: 130%; } }
-      @keyframes ring { from { opacity: 0.9; transform: scale(0.9); } to { opacity: 0; transform: scale(1.5); } }
+      .on h1 .ch { display: inline-block; animation: pop 0.4s cubic-bezier(.2, 1.6, .4, 1) both; }
+      .off .badge, .off .card { opacity: 1; transform: none; animation: out 0.35s ease-in forwards; }
+      @keyframes drop { to { opacity: 1; transform: rotate(-4deg); } }
+      @keyframes strike { 70% { opacity: 1; transform: scale(0.97); } to { opacity: 1; transform: none; } }
+      @keyframes out { to { opacity: 0; transform: translateY(30px); } }
       @keyframes timer { from { transform: scaleX(1); } to { transform: scaleX(0); } }
-      @keyframes pop { from { opacity: 0; transform: translateY(40px) scale(0.6); } }
-      .idle { position: absolute; inset: 0; display: none; place-items: center; font-family: var(--ui); font-size: 34px; letter-spacing: 0.3em; color: rgba(255, 255, 255, 0.18); text-transform: uppercase; }
+      @keyframes pop { from { opacity: 0; transform: translateY(30px); } }
+      .idle { position: absolute; inset: 0; display: none; place-items: center; font-size: 34px; font-weight: 600; color: rgba(255, 255, 255, 0.25); }
       .preview .idle.show { display: grid; }
+      @media (prefers-reduced-motion: reduce) { .on .badge, .on .card, .on h1 .ch { animation-duration: 1ms; } }
     </style>
   </head>
   <body>
@@ -42,7 +36,7 @@
     <div class="idle" id="idle">Waiting for an alert</div>
     <div class="wrap" id="wrap">
       <div class="badge"><img src="/logo.png" alt="" /></div>
-      <div class="card">
+      <div class="card paper">
         <div class="kind" id="kind"></div>
         <h1 id="title"></h1>
         <p id="detail"></p>
@@ -67,7 +61,7 @@
       }
 
       function show(alert) {
-        const color = alert.color || getComputedStyle(document.documentElement).getPropertyValue('--accent');
+        const color = alert.color || getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
         const dur = Math.max(2500, alert.duration || 6000);
         wrap.style.setProperty('--c', color);
         wrap.style.setProperty('--dur', `${dur - 500}ms`);
@@ -79,7 +73,7 @@
         void wrap.offsetWidth;
         wrap.className = 'wrap on';
         Mad.chime();
-        setTimeout(() => Mad.burst(fx, innerWidth / 2, innerHeight * 0.3, [color, getComputedStyle(document.documentElement).getPropertyValue('--accent2').trim(), '#ffffff'], alert.kind === 'raid' || alert.kind === 'sub' ? 160 : 90), 350);
+        setTimeout(() => Mad.burst(fx, innerWidth / 2, innerHeight * 0.3, [color, getComputedStyle(document.documentElement).getPropertyValue('--accent2').trim(), '#1c1a17'], alert.kind === 'raid' || alert.kind === 'sub' ? 160 : 90), 350);
         clearTimeout(timer); clearTimeout(outTimer);
         timer = setTimeout(() => {
           wrap.className = 'wrap off';

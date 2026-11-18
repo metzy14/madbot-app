@@ -7,14 +7,14 @@
       :root { --chat-size: 22px; }
       body { height: 100vh; }
       .box { position: absolute; left: 0; bottom: 0; width: min(100vw, 640px); padding: 18px; display: flex; flex-direction: column; justify-content: flex-end; gap: 10px; max-height: 100vh; }
-      .line { align-self: flex-start; max-width: 100%; padding: 10px 16px 11px; border-radius: 6px 18px 18px 18px; background: var(--glass); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35); font-size: var(--chat-size); line-height: 1.35; font-weight: 500; transition: opacity 0.6s, transform 0.6s; word-wrap: break-word; backdrop-filter: blur(8px); }
+      .line { align-self: flex-start; max-width: 100%; padding: 9px 16px 10px; border-radius: 4px; background: var(--ink-2); color: var(--fang); box-shadow: 4px 4px 0 var(--teal); font-size: var(--chat-size); line-height: 1.35; font-weight: 500; word-wrap: break-word; }
       .line.new { animation: in 0.45s cubic-bezier(.2, 1.3, .4, 1); }
       .line.gone { opacity: 0; transform: translateX(-30px); }
-      .who { font-weight: 700; margin-right: 8px; color: var(--c); }
-      .line.bot { border-left: 4px solid var(--accent); background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 28%, rgba(14, 12, 9, 0.85)), var(--glass)); }
+      .who { font-weight: 800; font-stretch: 85%; margin-right: 8px; color: var(--c); }
+      .line.bot { box-shadow: 4px 4px 0 var(--accent); }
       .line.bot .who { color: var(--accent); }
-      .tag { display: inline-block; font-size: 0.5em; font-weight: 800; letter-spacing: 0.1em; padding: 2px 6px; border-radius: 4px; background: var(--accent); color: #04121f; margin-right: 8px; vertical-align: 0.35em; }
-      @keyframes in { from { opacity: 0; transform: translateX(-40px) scale(0.92); } }
+      .tag { display: inline-block; font-size: 0.6em; font-weight: 800; padding: 1px 6px; border-radius: 3px; background: var(--accent); color: var(--ink); margin-right: 8px; vertical-align: 0.2em; }
+      @keyframes in { from { opacity: 0; transform: translateX(-24px); } }
     </style>
   </head>
   <body>
@@ -34,7 +34,7 @@
           const isNew = !seen.has(k);
           seen.add(k);
           const bot = line.name === 'MadBot';
-          return `<div class="line${bot ? ' bot' : ''}${isNew ? ' new' : ''}" style="--c:${Mad.nameColor(line.name)}">${bot ? '<span class="tag">BOT</span>' : ''}<span class="who">${Mad.esc(line.name)}</span>${Mad.esc(line.text)}</div>`;
+          return `<div class="line${bot ? ' bot' : ''}${isNew ? ' new' : ''}" style="--c:${Mad.nameColor(line.name)}">${bot ? '<span class="tag">bot</span>' : ''}<span class="who">${Mad.esc(line.name)}</span>${Mad.esc(line.text)}</div>`;
         }).join('');
       }
       setInterval(() => { if (Mad.theme.chatFade) paint(); }, 1000);

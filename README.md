@@ -23,7 +23,7 @@ In OBS, add a Browser source. The **Overlays** page shows a live preview of each
 
 Overlay colors, chat size, chat fade-out, and the alert sound are set on the **Overlays** page. Overlays reconnect on their own if the app restarts.
 
-Fonts in `assets/fonts` (Anton, Space Grotesk, JetBrains Mono) are under the SIL Open Font License.
+Fonts in `assets/fonts` (Big Shoulders Stencil Display, Archivo, JetBrains Mono) are under the SIL Open Font License.
 
 ## From source
 

@@ -5,44 +5,33 @@
     <link rel="stylesheet" href="kit.css" />
     <style>
       body { width: 100vw; height: 100vh; }
-      .scene { position: absolute; inset: 0; display: grid; place-items: center; overflow: hidden; background: #0b0a08; opacity: 0; transition: opacity 0.8s ease; }
+      .scene { position: absolute; inset: 0; display: grid; place-items: center; overflow: hidden; opacity: 0; transition: opacity 0.6s ease; }
       .scene.on { opacity: 1; }
-      .blob { position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.55; }
-      .b1 { width: 1100px; height: 1100px; left: -300px; top: -400px; background: var(--accent2); animation: float 18s ease-in-out infinite alternate; }
-      .b2 { width: 1200px; height: 1200px; right: -400px; bottom: -500px; background: var(--accent); animation: float 22s ease-in-out infinite alternate-reverse; }
-      .grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px); background-size: 60px 60px; mask-image: radial-gradient(circle at 50% 50%, #000, transparent 75%); }
-      .grain { position: absolute; inset: 0; opacity: 0.12; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); mix-blend-mode: overlay; }
-      @keyframes float { to { transform: translate(200px, 140px) scale(1.15); } }
-      .content { position: relative; text-align: center; display: flex; flex-direction: column; align-items: center; }
+            .content { position: relative; text-align: center; display: flex; flex-direction: column; align-items: center; }
       .logo { position: relative; width: 300px; height: 300px; }
-      .logo img { position: relative; width: 100%; height: 100%; border-radius: 64px; box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6); z-index: 1; }
-      .logo .r { position: absolute; inset: -22px; border-radius: 80px; border: 4px solid var(--accent); opacity: 0; animation: ripple 3s ease-out infinite; }
-      .logo .r:nth-child(2) { animation-delay: 1s; border-color: var(--accent2); }
-      .logo .r:nth-child(3) { animation-delay: 2s; }
-      @keyframes ripple { from { opacity: 0.8; transform: scale(0.95); } to { opacity: 0; transform: scale(1.5); } }
-      h1 { margin: 60px 0 0; font-family: var(--display); font-weight: 400; font-size: 150px; line-height: 0.95; letter-spacing: 0.01em; text-transform: uppercase; background: linear-gradient(180deg, #fff 40%, #d4c8ae); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.5)); }
-      p { margin: 18px 0 0; font-size: 38px; font-weight: 500; color: rgba(255, 248, 232, 0.8); max-width: 1300px; }
-      .clock { margin-top: 40px; display: flex; gap: 14px; align-items: center; font-family: var(--mono); font-size: 64px; font-weight: 600; padding: 14px 36px; border-radius: 22px; background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(255, 255, 255, 0.1); }
+      .logo img { position: relative; width: 100%; height: 100%; border-radius: 10px; box-shadow: 14px 14px 0 var(--teal); z-index: 1; }
+                              h1 { margin: 56px 0 0; font-family: var(--display); font-weight: 900; font-size: 220px; line-height: 0.95; color: var(--ink); text-shadow: 10px 8px 0 var(--teal); }
+      p { margin: 54px 0 0; font-size: 40px; font-weight: 600; color: var(--ink); max-width: 1300px; }
+      .clock { margin-top: 44px; display: flex; gap: 16px; align-items: center; font-weight: 800; font-stretch: 72%; font-size: 92px; line-height: 1; padding: 10px 34px 14px; border-radius: 6px; background: var(--ink); color: var(--fang); box-shadow: 10px 10px 0 var(--teal); }
       .clock[hidden] { display: none; }
-      .clock .dot { width: 18px; height: 18px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 20px var(--accent); animation: blink 1s steps(2) infinite; }
+      .clock .dot { width: 20px; height: 20px; border-radius: 50%; background: #e5432f; animation: blink 1s steps(2) infinite; }
       @keyframes blink { 50% { opacity: 0.2; } }
-      .foot { position: absolute; left: 0; right: 0; bottom: 50px; display: flex; justify-content: center; gap: 40px; font-size: 26px; font-weight: 600; color: rgba(255, 255, 255, 0.6); letter-spacing: 0.08em; }
-      .foot b { color: var(--accent2); }
-      .on .content > * { animation: rise 0.9s cubic-bezier(.2, .9, .2, 1) both; }
+      .foot { position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 60px; display: flex; justify-content: space-between; gap: 40px; font-size: 30px; font-weight: 700; background: var(--ink); color: var(--fang); }
+      .foot b { color: var(--accent2); font-weight: 800; }
+      .on .content > * { animation: rise 0.7s cubic-bezier(.2, .9, .2, 1) both; }
       .on .content > *:nth-child(2) { animation-delay: 0.12s; }
       .on .content > *:nth-child(3) { animation-delay: 0.24s; }
       .on .content > *:nth-child(4) { animation-delay: 0.36s; }
       @keyframes rise { from { opacity: 0; transform: translateY(50px); } }
-      .idle { position: absolute; inset: 0; display: none; place-items: center; font-size: 34px; letter-spacing: 0.3em; color: rgba(255, 255, 255, 0.18); text-transform: uppercase; }
+      .idle { position: absolute; inset: 0; display: none; place-items: center; font-size: 34px; font-weight: 600; color: rgba(255, 255, 255, 0.25); }
       .preview .idle.show { display: grid; }
     </style>
   </head>
   <body>
     <div class="idle" id="idle">Scene hidden</div>
-    <div class="scene" id="scene">
-      <div class="blob b1"></div><div class="blob b2"></div><div class="grid"></div><div class="grain"></div>
+    <div class="scene paper" id="scene">
       <div class="content">
-        <div class="logo"><div class="r"></div><div class="r"></div><div class="r"></div><img src="/logo.png" alt="" /></div>
+        <div class="logo"><img src="/logo.png" alt="" /></div>
         <h1 id="title"></h1>
         <p id="subtitle"></p>
         <div class="clock" id="clock"><span class="dot"></span><span id="time">00:00</span></div>

@@ -4,23 +4,23 @@
     <meta charset="utf-8" />
     <link rel="stylesheet" href="kit.css" />
     <style>
-      .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 80px; display: flex; align-items: stretch; background: linear-gradient(180deg, rgba(18, 15, 11, 0.94), rgba(8, 7, 5, 0.96)); border-top: 3px solid var(--accent); box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.4); overflow: hidden; }
-      .tag { position: relative; z-index: 2; display: flex; align-items: center; gap: 14px; padding: 0 34px 0 14px; background: var(--accent2); color: #140d02; font-family: var(--display); font-size: 34px; letter-spacing: 0.04em; clip-path: polygon(0 0, 100% 0, calc(100% - 24px) 100%, 0 100%); }
-      .tag img { width: 56px; height: 56px; border-radius: 12px; border: 2px solid #140d02; }
+      .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 80px; display: flex; align-items: stretch; background: var(--ink); border-top: 6px solid var(--teal); overflow: hidden; }
+      .tag { position: relative; z-index: 2; display: flex; align-items: center; gap: 14px; padding: 0 26px 0 12px; font-family: var(--display); font-weight: 900; font-size: 42px; }
+      .tag img { width: 54px; height: 54px; border-radius: 4px; }
       .track { flex: 1; position: relative; overflow: hidden; mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
       .run { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; white-space: nowrap; will-change: transform; animation: run var(--speed, 40s) linear infinite; }
       .item { display: inline-flex; align-items: center; gap: 12px; padding: 0 30px; font-size: 28px; font-weight: 600; }
       .item b { color: var(--c, var(--accent)); font-weight: 700; }
-      .item .sep { width: 10px; height: 10px; transform: rotate(45deg); background: var(--accent); margin-left: 30px; }
-      .goal { display: flex; align-items: center; gap: 14px; padding: 0 26px; font-family: var(--display); font-size: 30px; letter-spacing: 0.02em; border-left: 1px solid rgba(255, 255, 255, 0.1); }
-      .goal .mini { width: 160px; height: 12px; border-radius: 99px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
-      .goal .mini span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent2), var(--accent)); }
+      .item .sep { width: 12px; height: 12px; background: var(--accent2); margin-left: 30px; }
+      .goal { display: flex; align-items: center; gap: 14px; padding: 0 26px; font-weight: 800; font-stretch: 80%; font-size: 28px; }
+      .goal .mini { width: 160px; height: 14px; border-radius: 2px; background: #3a372f; overflow: hidden; }
+      .goal .mini span { display: block; height: 100%; background: var(--accent); }
       @keyframes run { from { transform: translateX(0); } to { transform: translateX(-50%); } }
     </style>
   </head>
   <body>
     <div class="bar">
-      <div class="tag"><img src="/logo.png" alt="" />LATEST</div>
+      <div class="tag paper"><img src="/logo.png" alt="" />Latest</div>
       <div class="track"><div class="run" id="run"></div></div>
       <div class="goal"><span id="goal"></span><div class="mini"><span id="mini"></span></div></div>
     </div>
@@ -32,7 +32,7 @@
         if (message.type !== 'state') return;
         const events = (message.events || []).slice(0, 10);
         const items = events.length
-          ? events.map((item) => `<span class="item" style="--c:${Mad.esc(item.color || '')}"><b>★</b>${Mad.esc(item.text)}<i class="sep"></i></span>`).join('')
+          ? events.map((item) => `<span class="item" style="--c:${Mad.esc(item.color || '')}">${Mad.esc(item.text)}<i class="sep"></i></span>`).join('')
           : `<span class="item">Welcome to the kennel<i class="sep"></i></span><span class="item">kick.com/${Mad.esc(message.channel || '')}<i class="sep"></i></span>`;
         if (items !== last) {
           last = items;

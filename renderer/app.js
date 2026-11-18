@@ -97,6 +97,11 @@ function card(title, iconName, ...kids) {
     h('div', { class: 'card-head' }, h('h2', null, iconName && icon(iconName), title), actions),
     kids);
 }
+function sheet(...args) {
+  const el = card(...args);
+  el.classList.add('sheet');
+  return el;
+}
 function actions(...kids) {
   const el = h('div', { class: 'row' }, kids);
   el.__actions = true;
@@ -228,7 +233,7 @@ const PAGES = [
   { group: 'Broadcast', name: 'Alerts', icon: 'bell', eyebrow: 'On-screen alerts', render: renderAlerts },
   { group: 'Broadcast', name: 'Chat', icon: 'chat', eyebrow: 'Chat dock', render: renderChat },
   { group: 'Broadcast', name: 'Goals', icon: 'target', eyebrow: 'Stream goal', render: renderGoals },
-  { group: 'Broadcast', name: 'Scenes', icon: 'scene', eyebrow: 'Starting · BRB · Ending', render: renderScenes },
+  { group: 'Broadcast', name: 'Scenes', icon: 'scene', eyebrow: 'Starting, BRB, ending', render: renderScenes },
   { group: 'Bot', name: 'Commands', icon: 'terminal', eyebrow: 'Chat commands', render: renderCommands },
   { group: 'Bot', name: 'Voice', icon: 'mic', eyebrow: 'Text to speech', render: renderVoice },
   { group: 'Bot', name: 'Lights', icon: 'bulb', eyebrow: 'Hue and Govee', render: renderLights },
@@ -296,8 +301,11 @@ function render() {
   statusSyncers = [];
   renderNav();
   const p = PAGES.find((item) => item.name === page);
-  document.getElementById('eyebrow').textContent = p.eyebrow;
-  document.getElementById('title').textContent = p.name;
+  const title = document.getElementById('title');
+  title.textContent = p.name;
+  title.classList.remove('print');
+  void title.offsetWidth;
+  title.classList.add('print');
   viewEl.innerHTML = '';
   viewEl.style.animation = 'none';
   void viewEl.offsetWidth;
@@ -335,9 +343,8 @@ function ring(size = 168) {
   const r = 70;
   const c = 2 * Math.PI * r;
   const wrap = h('div', { class: 'ring', style: { width: `${size}px`, height: `${size}px` } });
-  wrap.innerHTML = `<svg viewBox="0 0 168 168"><defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e0a526"/><stop offset="1" stop-color="#2f9bff"/></linearGradient></defs>
-    <circle class="track" cx="84" cy="84" r="${r}" fill="none" stroke-width="14"/>
-    <circle class="bar" cx="84" cy="84" r="${r}" fill="none" stroke-width="14" stroke-dasharray="${c}" stroke-dashoffset="${c}"/></svg>
+  wrap.innerHTML = `<svg viewBox="0 0 168 168"><circle class="track" cx="84" cy="84" r="${r}" fill="none" stroke-width="16"/>
+    <circle class="bar" cx="84" cy="84" r="${r}" fill="none" stroke-width="16" stroke-dasharray="${c}" stroke-dashoffset="${c}"/></svg>
     <div class="center"><div class="pct">0%</div><div class="of"></div></div>`;
   const bar = wrap.querySelector('.bar');
   const update = () => {
@@ -360,7 +367,7 @@ function sparkline(events) {
     if (hoursAgo >= 0 && hoursAgo < 12) buckets[11 - hoursAgo] += 1;
   });
   const max = Math.max(1, ...buckets);
-  const bars = buckets.map((v, i) => `<rect x="${i * 7.5}" y="${34 - (v / max) * 30 - 2}" width="5" height="${(v / max) * 30 + 2}" rx="1.5" fill="${i === 11 ? '#2f9bff' : 'rgba(224,165,38,.55)'}"/>`).join('');
+  const bars = buckets.map((v, i) => `<rect x="${i * 7.5}" y="${34 - (v / max) * 30 - 2}" width="5" height="${(v / max) * 30 + 2}" rx="1.5" fill="${i === 11 ? '#1f8fe8' : '#c99434'}"/>`).join('');
   const el = document.createElementNS(SVG_NS, 'svg');
   el.setAttribute('class', 'spark');
   el.setAttribute('viewBox', '0 0 90 34');
@@ -368,11 +375,15 @@ function sparkline(events) {
   return el;
 }
 
+const seenEvents = new Set();
 function feedItem(item, index, opts = {}) {
   const meta = ALERT_META[item.kind] || { icon: 'activity' };
-  return h('div', { class: 'feed-item', vars: { '--c': item.color || '#2f9bff' } },
+  const key = `${item.at}|${item.text}`;
+  const fresh = seenEvents.size > 0 && !seenEvents.has(key);
+  seenEvents.add(key);
+  return h('div', { class: `feed-item${fresh ? ' new' : ''}`, vars: { '--c': item.color || '#1f8fe8' } },
     h('div', { class: 'feed-ico' }, icon(meta.icon)),
-    h('div', null, h('div', { class: 't' }, item.text), h('div', { class: 'when' }, `${ago(item.at)} · ${hhmm(item.at)}`)),
+    h('div', null, h('div', { class: 't' }, item.text), h('div', { class: 'when', title: hhmm(item.at) }, ago(item.at))),
     h('div', { class: 'acts' }, opts.replay !== false && item.kind && btn('', {
       class: 'ghost icon', icon: 'replay', title: 'Replay this alert',
       onClick: async () => report(await window.madbot.replayEvent(index), 'Replaying', item.text),
@@ -410,11 +421,11 @@ function kpi(label, iconName, valueFn, subFn, extra) {
 
 function renderDashboard() {
   const settings = S();
-  const onair = h('div', { class: 'onair' }, h('span', { class: 'dot' }), 'ON AIR');
+  const onair = h('div', { class: 'onair', title: 'Lights up while MadBot is capturing your live stream' }, 'OFF AIR');
   const chips = h('div', { class: 'row' });
   onStatus(() => {
     onair.classList.toggle('on', status.live.listening);
-    onair.querySelector('.dot').className = `dot ${status.live.listening ? 'live' : ''}`;
+    onair.textContent = status.live.listening ? 'ON AIR' : 'OFF AIR';
     chips.innerHTML = '';
     chips.append(
       h('span', { class: 'chip ok' }, icon('check'), `Overlays on :${state.port}`),
@@ -425,15 +436,15 @@ function renderDashboard() {
   const hero = h('div', { class: 'hero' },
     h('img', { class: 'hero-logo', src: '../assets/logo.png', alt: '' }),
     h('div', null,
-      h('h3', null, 'Welcome back to the ', h('em', null, 'kennel')),
-      h('p', { style: { margin: 0 } }, `kick.com/${settings.kickChannel} · Everything runs on this PC.`),
+      h('h3', null, `kick.com/${settings.kickChannel}`),
+      h('p', null, 'Alerts, chat, lights, and overlays all run from this PC.'),
       chips),
     onair);
 
   const k1 = kpi('Events today', 'activity', () => status.eventsToday, () => 'Bars show the last 12 hours', null);
   const sparkHolder = h('div');
   k1.el.appendChild(sparkHolder);
-  const k2 = kpi('Goal', 'target', () => `${goalPct()}%`, () => `${S().goal.current} / ${S().goal.target} · ${S().goal.label}`);
+  const k2 = kpi('Goal', 'target', () => `${goalPct()}%`, () => `${S().goal.current} of ${S().goal.target}`);
   const k3 = kpi('OBS sources', 'layers', () => status.overlays, () => (status.overlays ? 'Overlays are connected' : 'Add a browser source in OBS'));
   const k4 = kpi('Chat lines', 'chat', () => (S().chat || []).length, () => `${S().commands.filter((c) => c.enabled !== false).length} commands active`);
   onStatus(() => [k1, k2, k3, k4].forEach((k) => k.update()));
@@ -462,7 +473,7 @@ function renderDashboard() {
     h('div', { class: 'grid split', style: { marginTop: '16px' } },
       h('div', null,
         card('Fire an alert', 'bell', fireGrid()),
-        card('Activity', 'activity', actions(btn('Clear', { class: 'ghost', icon: 'trash', onClick: clearEvents })), feedList(12))),
+        sheet('Activity', 'activity', actions(btn('Clear', { class: 'ghost', icon: 'trash', onClick: clearEvents })), feedList(12))),
       h('div', null,
         card('Goal', 'target', actions(btn('Edit', { class: 'ghost', onClick: () => go('Goals') })),
           h('div', { class: 'row', style: { gap: '20px' } }, goalRing,
@@ -496,7 +507,7 @@ async function clipNow() {
 // ---------- Alerts ----------
 function renderAlerts() {
   const settings = S();
-  const preview = stage(state.urls.alert, 'Live preview · alert.html');
+  const preview = stage(state.urls.alert, 'alert.html');
   const list = h('div', { class: 'grid g2' });
   Object.entries(settings.alerts).forEach(([kind, alert]) => {
     const meta = ALERT_META[kind] || { icon: 'bell', label: kind };
@@ -524,7 +535,7 @@ function renderAlerts() {
     h('div', { class: 'grid split' },
       card('Preview', 'eye', preview,
         h('p', { class: 'small', style: { marginTop: '12px' } }, 'This is the real overlay. Test buttons play here and in OBS at the same time.')),
-      card('Recent', 'activity', actions(btn('Clear', { class: 'ghost', icon: 'trash', onClick: clearEvents })), feedList(8))),
+      sheet('Recent', 'activity', actions(btn('Clear', { class: 'ghost', icon: 'trash', onClick: clearEvents })), feedList(8))),
     h('div', { class: 'row', style: { margin: '20px 0 12px' } },
       h('span', { class: 'muted small' }, 'Variables:'),
       ['{name}', '{viewers}', '{amount}'].map((v) => h('span', { class: 'chip click', onClick: () => { window.madbot.copy(v); toast(`Copied ${v}`); } }, v))),
@@ -565,7 +576,7 @@ function renderChat() {
       h('div', { class: 'composer' }, input, btn('Send', { class: 'primary', icon: 'send', onClick: send })),
       h('div', { class: 'row', style: { marginTop: '12px' } }, h('span', { class: 'muted small' }, 'Commands:'), cmds)),
     card('Overlay preview', 'eye', stage(state.urls.chat, 'chat.html', '4 / 3', [600, 800]),
-      h('p', { class: 'small', style: { marginTop: '12px' } }, 'Font size and fade-out live under Overlays → Look.')));
+      h('p', { class: 'small', style: { marginTop: '12px' } }, 'Set the font size and fade-out on the Overlays page.')));
 }
 
 // ---------- Goals ----------
@@ -658,7 +669,7 @@ function renderCommands() {
     card('Commands', 'terminal', actions(btn('Add command', { class: 'primary', icon: 'plus', onClick: async () => { settings.commands.push({ name: '!new', reply: 'Edit me.', enabled: true }); await persist(); draw(); list.querySelector('.cmd:last-child input.name').select(); } })), list),
     h('div', null,
       card('Test a command', 'play', h('div', { class: 'composer' }, tester, btn('Run', { class: 'primary', onClick: run })), h('div', { style: { marginTop: '12px' } }, out)),
-      card('Variables', 'info',
+      sheet('Variables', 'info',
         h('div', { class: 'vars' }, ['{name}', '{discord}', '{current}', '{target}'].map((v) => h('span', { class: 'chip click', onClick: () => { window.madbot.copy(v); toast(`Copied ${v}`); } }, v))),
         h('p', { class: 'small', style: { marginTop: '12px' } }, '{name} is whatever follows the command. Click a chip to copy it.')),
       card('Links', 'external', h('div', { class: 'stack' },
@@ -673,7 +684,7 @@ function renderVoice() {
   if (voice.provider === 'system') {
     const voices = window.speechSynthesis ? speechSynthesis.getVoices() : [];
     body.append(h('label', { class: 'field' }, h('span', null, 'Voice'),
-      selectEl([['', voices.length ? 'Default voice' : 'Loading voices…'], ...voices.map((v) => [v.name, `${v.name} · ${v.lang}`])], voice.systemVoice, async (v) => { voice.systemVoice = v; await persist(); })));
+      selectEl([['', voices.length ? 'Default voice' : 'Loading voices…'], ...voices.map((v) => [v.name, `${v.name} (${v.lang})`])], voice.systemVoice, async (v) => { voice.systemVoice = v; await persist(); })));
     const rateLabel = h('span', { class: 'mono muted' }, `${Number(voice.rate || 1).toFixed(1)}×`);
     body.append(h('label', { class: 'field' }, h('span', null, 'Speed ', rateLabel),
       range(voice.rate || 1, 0.5, 2, 0.1, async (v, done) => { voice.rate = v; rateLabel.textContent = `${v.toFixed(1)}×`; if (done) await persist(); })));
@@ -758,7 +769,7 @@ function renderLive() {
   const settings = S();
   settings.live = settings.live || { seconds: 45, caption: 'Live from the kennel.' };
   settings.socials = settings.socials || { x: {}, youtube: {}, instagram: {} };
-  const clipBtn = h('button', { type: 'button', class: 'clip-btn' }, 'CLIP NOW', h('small', null, 'CTRL + SHIFT + C'));
+  const clipBtn = h('button', { type: 'button', class: 'clip-btn' }, h('span', null, 'Clip now'), h('small', null, 'or press Ctrl+Shift+C'));
   clipBtn.addEventListener('click', async () => { clipBtn.disabled = true; try { await clipNow(); } finally { clipBtn.disabled = !status.live.listening; } });
   const listenBtn = h('div');
   onStatus(() => {
@@ -1011,7 +1022,7 @@ window.madbot.onShortsLog((line) => appendLog(shortsLog, 'shorts-log', line));
 
 window.madbot.boot().then(async (boot) => {
   state = boot;
-  state.settings.theme = state.settings.theme || { accent: '#2f9bff', accent2: '#e0a526', chatSize: 22, chatFade: 0 };
+  state.settings.theme = state.settings.theme || { accent: '#1f8fe8', accent2: '#c99434', chatSize: 22, chatFade: 0 };
   state.settings.scene = state.settings.scene || { mode: 'off', title: '', subtitle: '', minutes: 5 };
   if (window.speechSynthesis) speechSynthesis.onvoiceschanged = () => { if (page === 'Voice') render(); };
   tickClock();
