@@ -1,0 +1,14 @@
+@font-face { font-family: "Anton"; src: url("/fonts/anton.woff2") format("woff2"); }
+@font-face { font-family: "Space Grotesk"; src: url("/fonts/space-grotesk.woff2") format("woff2"); font-weight: 300 700; }
+@font-face { font-family: "JetBrains Mono"; src: url("/fonts/jetbrains-mono.woff2") format("woff2"); }
+:root {
+  --accent: #2f9bff;
+  --accent2: #e0a526;
+  --ink: #fbf6ea;
+  --glass: rgba(14, 12, 9, 0.78);
+  --display: "Anton", Impact, sans-serif;
+  --ui: "Space Grotesk", "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: transparent; color: var(--ink); font-family: var(--ui); overflow: hidden; -webkit-font-smoothing: antialiased; }

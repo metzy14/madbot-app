@@ -23,5 +23,13 @@ contextBridge.exposeInMainWorld('madbot', {
   youtubeConnect: () => ipcRenderer.invoke('youtube-connect'),
   xConnect: () => ipcRenderer.invoke('x-connect'),
   instagramConnect: () => ipcRenderer.invoke('instagram-connect'),
+  status: () => ipcRenderer.invoke('status'),
+  replayEvent: (index) => ipcRenderer.invoke('replay-event', index),
+  clearEvents: () => ipcRenderer.invoke('clear-events'),
+  clearChat: () => ipcRenderer.invoke('clear-chat'),
+  scene: (next) => ipcRenderer.invoke('scene', next),
+  copy: (text) => ipcRenderer.invoke('copy', text),
+  onState: (callback) => ipcRenderer.on('state', (_event, state) => callback(state)),
+  onAlert: (callback) => ipcRenderer.on('alert-fired', (_event, alert) => callback(alert)),
   onLiveLog: (callback) => ipcRenderer.on('live-log', (_event, line) => callback(line)),
 });
