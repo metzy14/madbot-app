@@ -2,34 +2,92 @@
 <html>
   <head>
     <meta charset="utf-8" />
+    <link rel="stylesheet" href="kit.css" />
     <style>
-      html, body { margin: 0; background: transparent; overflow: hidden; font-family: "Segoe UI", sans-serif; }
-      .alert {
-        position: absolute; left: 50%; top: 18%; transform: translateX(-50%) translateY(12px);
-        min-width: 420px; text-align: center; opacity: 0; color: white;
-        transition: opacity 0.25s ease, transform 0.25s ease;
-      }
-      .alert.on { opacity: 1; transform: translateX(-50%) translateY(0); }
-      h1 { margin: 0; font-size: 64px; letter-spacing: -0.04em; text-shadow: 0 8px 30px rgba(0,0,0,0.6); }
-      p { margin: 8px 0 0; font-size: 28px; color: #e7ffe0; }
+      body { width: 100vw; height: 100vh; }
+      canvas { position: fixed; inset: 0; pointer-events: none; }
+      .wrap { position: absolute; left: 50%; top: 16%; transform: translateX(-50%); width: max-content; max-width: 1800px; display: flex; flex-direction: column; align-items: center; --c: var(--accent); }
+      .badge { position: relative; width: 150px; height: 150px; border-radius: 34px; padding: 5px; background: conic-gradient(from 0deg, var(--c), var(--accent2), var(--c)); box-shadow: 0 0 60px color-mix(in srgb, var(--c) 70%, transparent); opacity: 0; transform: scale(0.2) rotate(-25deg); }
+      .badge img { width: 100%; height: 100%; display: block; border-radius: 30px; }
+      .badge::after { content: ""; position: absolute; inset: -18px; border-radius: 44px; border: 3px solid var(--c); opacity: 0; }
+      .card { position: relative; margin-top: -26px; min-width: 760px; max-width: 1300px; padding: 46px 64px 30px; border-radius: 28px; text-align: center; background: linear-gradient(180deg, rgba(20, 17, 12, 0.92), rgba(10, 9, 7, 0.92)); border: 2px solid color-mix(in srgb, var(--c) 60%, transparent); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 0 8px color-mix(in srgb, var(--c) 12%, transparent); overflow: hidden; opacity: 0; transform: translateY(40px) scaleY(0.6); }
+      .card::before { content: ""; position: absolute; top: 0; left: -40%; width: 30%; height: 100%; background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.18), transparent); transform: skewX(-20deg); }
+      .kind { display: inline-block; font-family: var(--ui); font-weight: 700; font-size: 20px; letter-spacing: 0.32em; text-transform: uppercase; color: #0b0a08; background: var(--c); padding: 6px 18px 6px 22px; border-radius: 999px; }
+      h1 { margin: 16px 0 0; font-family: var(--display); font-weight: 400; font-size: 92px; line-height: 1; letter-spacing: 0.01em; text-transform: uppercase; text-shadow: 0 6px 30px rgba(0, 0, 0, 0.6); }
+      h1 .name { color: var(--c); text-shadow: 0 0 30px color-mix(in srgb, var(--c) 60%, transparent); }
+      p { margin: 12px 0 0; font-size: 32px; font-weight: 500; color: #e9e1cf; }
+      .timer { position: absolute; left: 0; bottom: 0; height: 6px; width: 100%; background: linear-gradient(90deg, var(--accent2), var(--c)); transform-origin: left; }
+      .on .badge { animation: badge-in 0.7s cubic-bezier(.2, 1.5, .4, 1) forwards; }
+      .on .badge::after { animation: ring 1.2s 0.3s ease-out 2; }
+      .on .card { animation: card-in 0.6s 0.12s cubic-bezier(.2, 1.3, .4, 1) forwards; }
+      .on .card::before { animation: sweep 1.1s 0.6s ease forwards; }
+      .on .timer { animation: timer var(--dur) linear forwards; }
+      .on h1 .ch { display: inline-block; animation: pop 0.5s cubic-bezier(.2, 1.6, .4, 1) both; }
+      .off .badge { animation: badge-out 0.4s ease forwards; opacity: 1; transform: none; }
+      .off .card { animation: card-out 0.4s ease forwards; opacity: 1; transform: none; }
+      @keyframes badge-in { to { opacity: 1; transform: none; } }
+      @keyframes badge-out { to { opacity: 0; transform: scale(0.6) translateY(-30px); } }
+      @keyframes card-in { to { opacity: 1; transform: none; } }
+      @keyframes card-out { to { opacity: 0; transform: translateY(30px) scale(0.96); } }
+      @keyframes sweep { to { left: 130%; } }
+      @keyframes ring { from { opacity: 0.9; transform: scale(0.9); } to { opacity: 0; transform: scale(1.5); } }
+      @keyframes timer { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+      @keyframes pop { from { opacity: 0; transform: translateY(40px) scale(0.6); } }
+      .idle { position: absolute; inset: 0; display: none; place-items: center; font-family: var(--ui); font-size: 34px; letter-spacing: 0.3em; color: rgba(255, 255, 255, 0.18); text-transform: uppercase; }
+      .preview .idle.show { display: grid; }
     </style>
   </head>
   <body>
-    <div class="alert" id="alert"><h1 id="title"></h1><p id="detail"></p></div>
+    <canvas id="fx"></canvas>
+    <div class="idle" id="idle">Waiting for an alert</div>
+    <div class="wrap" id="wrap">
+      <div class="badge"><img src="/logo.png" alt="" /></div>
+      <div class="card">
+        <div class="kind" id="kind"></div>
+        <h1 id="title"></h1>
+        <p id="detail"></p>
+        <div class="timer"></div>
+      </div>
+    </div>
+    <script src="kit.js"></script>
     <script>
-      const box = document.getElementById('alert');
-      const socket = new WebSocket(`ws://${location.host}`);
+      const LABELS = { follow: 'New follower', sub: 'New subscriber', raid: 'Raid incoming', host: 'Hosted', kick: 'Kicks', tip: 'Tip' };
+      const wrap = document.getElementById('wrap');
+      const idle = document.getElementById('idle');
+      const fx = document.getElementById('fx');
+      if (Mad.preview) { document.body.classList.add('preview'); idle.classList.add('show'); }
       let timer;
-      socket.onmessage = (event) => {
-        const message = JSON.parse(event.data);
-        if (message.type !== 'alert') return;
-        document.getElementById('title').textContent = message.alert.title;
-        document.getElementById('detail').textContent = message.alert.detail;
-        document.getElementById('title').style.color = message.alert.color || '#53fc18';
-        box.classList.add('on');
-        clearTimeout(timer);
-        timer = setTimeout(() => box.classList.remove('on'), Math.max(1500, (message.alert.duration || 6000) - 400));
-      };
+      let outTimer;
+
+      function titleHtml(title, name) {
+        const safe = Mad.esc(title);
+        if (!name || !title.includes(name)) return safe;
+        const letters = [...name].map((ch, i) => `<span class="ch" style="animation-delay:${0.35 + i * 0.035}s">${Mad.esc(ch)}</span>`).join('');
+        return safe.replace(Mad.esc(name), `<span class="name">${letters}</span>`);
+      }
+
+      function show(alert) {
+        const color = alert.color || getComputedStyle(document.documentElement).getPropertyValue('--accent');
+        const dur = Math.max(2500, alert.duration || 6000);
+        wrap.style.setProperty('--c', color);
+        wrap.style.setProperty('--dur', `${dur - 500}ms`);
+        document.getElementById('kind').textContent = LABELS[alert.kind] || alert.kind || 'Alert';
+        document.getElementById('title').innerHTML = titleHtml(alert.title || '', alert.name || '');
+        document.getElementById('detail').textContent = alert.detail || '';
+        idle.classList.remove('show');
+        wrap.className = 'wrap';
+        void wrap.offsetWidth;
+        wrap.className = 'wrap on';
+        Mad.chime();
+        setTimeout(() => Mad.burst(fx, innerWidth / 2, innerHeight * 0.3, [color, getComputedStyle(document.documentElement).getPropertyValue('--accent2').trim(), '#ffffff'], alert.kind === 'raid' || alert.kind === 'sub' ? 160 : 90), 350);
+        clearTimeout(timer); clearTimeout(outTimer);
+        timer = setTimeout(() => {
+          wrap.className = 'wrap off';
+          outTimer = setTimeout(() => { wrap.className = 'wrap'; if (Mad.preview) idle.classList.add('show'); }, 450);
+        }, dur - 450);
+      }
+
+      Mad.connect((message) => { if (message.type === 'alert') show(message.alert); });
     </script>
   </body>
 </html>

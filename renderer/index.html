@@ -6,14 +6,45 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <div class="backdrop" aria-hidden="true">
+      <div class="glow glow-a"></div>
+      <div class="glow glow-b"></div>
+      <div class="grain"></div>
+    </div>
     <div class="app">
-      <aside>
-        <img class="logo" src="../assets/logo.png" alt="MadBot" />
-        <div class="mark">MAD<span>BOT</span></div>
-        <p class="kicker">The Dog Kennel</p>
+      <aside class="rail">
+        <div class="brand">
+          <div class="brand-logo"><img src="../assets/logo.png" alt="" /></div>
+          <div>
+            <div class="mark">MAD<span>BOT</span></div>
+            <div class="kicker">The Dog Kennel</div>
+          </div>
+        </div>
         <nav id="nav"></nav>
+        <div class="rail-foot" id="rail-status"></div>
       </aside>
-      <main id="main"></main>
+      <main>
+        <header class="top">
+          <div>
+            <div class="eyebrow" id="eyebrow"></div>
+            <h1 id="title"></h1>
+          </div>
+          <div class="top-right">
+            <button class="palette-hint" id="palette-open" title="Command palette">
+              <span>Search actions</span><kbd>Ctrl</kbd><kbd>K</kbd>
+            </button>
+            <div class="clock" id="clock"></div>
+          </div>
+        </header>
+        <section id="view" class="view"></section>
+      </main>
+    </div>
+    <div class="toasts" id="toasts"></div>
+    <div class="palette" id="palette" hidden>
+      <div class="palette-box">
+        <input id="palette-input" placeholder="Jump to a page or run an action…" autocomplete="off" />
+        <div id="palette-list" class="palette-list"></div>
+      </div>
     </div>
     <script src="app.js"></script>
   </body>

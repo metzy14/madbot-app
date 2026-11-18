@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, dialog, globalShortcut } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, dialog, globalShortcut, clipboard } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { startOverlay } = require('./overlay');
@@ -15,18 +15,20 @@ const DEFAULTS = {
   discord: 'https://discord.gg/thedogkennel',
   goal: { label: 'Follower goal', current: 1400, target: 2000 },
   alerts: {
-    follow: { enabled: true, title: '{name} followed', detail: 'Welcome to the kennel.', duration: 6000, color: '#53fc18' },
-    sub: { enabled: true, title: '{name} subscribed', detail: 'Thank you for the sub.', duration: 7000, color: '#7cff4f' },
-    raid: { enabled: true, title: '{name} raided', detail: '{viewers} viewers incoming.', duration: 8000, color: '#d6ff4a' },
-    host: { enabled: true, title: '{name} hosted', detail: 'Go show them love.', duration: 6000, color: '#b6ff8a' },
+    follow: { enabled: true, title: '{name} followed', detail: 'Welcome to the kennel.', duration: 6000, color: '#2f9bff' },
+    sub: { enabled: true, title: '{name} subscribed', detail: 'Thank you for the sub.', duration: 7000, color: '#e0a526' },
+    raid: { enabled: true, title: '{name} raided', detail: '{viewers} viewers incoming.', duration: 8000, color: '#ff5a4e' },
+    host: { enabled: true, title: '{name} hosted', detail: 'Go show them love.', duration: 6000, color: '#b14dff' },
     kick: { enabled: true, title: '{name} sent Kicks', detail: '{amount} Kicks', duration: 6000, color: '#53fc18' },
-    tip: { enabled: true, title: '{name} tipped', detail: '{amount}', duration: 7000, color: '#ffe56a' },
+    tip: { enabled: true, title: '{name} tipped', detail: '{amount}', duration: 7000, color: '#ffd84a' },
   },
   commands: [
-    { name: '!discord', reply: 'Join the Discord: {discord}' },
-    { name: '!goal', reply: 'Follower goal: {current} / {target}' },
-    { name: '!so', reply: 'Shoutout to {name}: https://kick.com/{name}' },
+    { name: '!discord', reply: 'Join the Discord: {discord}', enabled: true },
+    { name: '!goal', reply: 'Follower goal: {current} / {target}', enabled: true },
+    { name: '!so', reply: 'Shoutout to {name}: https://kick.com/{name}', enabled: true },
   ],
+  theme: { accent: '#2f9bff', accent2: '#e0a526', chatSize: 22, chatFade: 0 },
+  scene: { mode: 'off', title: 'Starting soon', subtitle: 'Grab a drink. The kennel opens shortly.', minutes: 5, endsAt: 0 },
   events: [],
   chat: [],
   lights: {
@@ -78,6 +80,8 @@ function loadSettings() {
     voice: { ...DEFAULTS.voice, ...(saved.voice || {}) },
     grokbot: { ...DEFAULTS.grokbot, ...(saved.grokbot || {}) },
     live: { ...DEFAULTS.live, ...(saved.live || {}) },
+    theme: { ...DEFAULTS.theme, ...(saved.theme || {}) },
+    scene: { ...DEFAULTS.scene, ...(saved.scene || {}) },
     socials: {
       ...DEFAULTS.socials,
       ...(saved.socials || {}),
@@ -106,14 +110,24 @@ function fill(template, data) {
   return String(template || '').replace(/\{(\w+)\}/g, (_, key) => (data[key] == null ? '' : String(data[key])));
 }
 
-function broadcastState() {
-  overlay.broadcast({
+const startedAt = Date.now();
+
+function snapshot() {
+  return {
     type: 'state',
     goal: settings.goal,
     chat: settings.chat.slice(-30),
-    events: settings.events.slice(0, 8),
+    events: settings.events.slice(0, 12),
     channel: settings.kickChannel,
-  });
+    theme: settings.theme,
+    scene: settings.scene,
+  };
+}
+
+function broadcastState() {
+  const state = snapshot();
+  overlay.broadcast(state);
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('state', state);
 }
 
 function pump() {
@@ -134,13 +148,15 @@ function pushAlert(kind, data) {
   if (!template || !template.enabled) return { ok: false, error: 'That alert is off.' };
   const payload = {
     kind,
+    name: data.name || '',
     title: fill(template.title, data),
     detail: fill(template.detail, data),
     duration: template.duration,
     color: template.color,
   };
   queue.push(payload);
-  settings.events.unshift({ text: payload.title, at: Date.now() });
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('alert-fired', payload);
+  settings.events.unshift({ text: payload.title, kind, data, color: template.color, at: Date.now() });
   settings.events = settings.events.slice(0, 40);
   saveSettings(settings);
   broadcastState();
@@ -154,7 +170,7 @@ function createWindow() {
     height: 820,
     minWidth: 980,
     minHeight: 680,
-    backgroundColor: '#070907',
+    backgroundColor: '#0c0b09',
     title: 'MadBot',
     icon: path.join(__dirname, '..', 'assets', 'logo.png'),
     autoHideMenuBar: true,
@@ -171,7 +187,7 @@ function createWindow() {
 app.whenReady().then(() => {
   if (process.platform === 'win32') app.setAppUserModelId('gg.thedogkennel.madbot');
   settings = loadSettings();
-  overlay = startOverlay(PORT, path.join(__dirname, '..', 'overlays'), () => settings);
+  overlay = startOverlay(PORT, path.join(__dirname, '..', 'overlays'), path.join(__dirname, '..', 'assets'), () => snapshot());
   createWindow();
 });
 
@@ -190,11 +206,61 @@ ipcMain.handle('boot', () => ({
     chat: `http://127.0.0.1:${PORT}/chat.html`,
     goal: `http://127.0.0.1:${PORT}/goal.html`,
     events: `http://127.0.0.1:${PORT}/events.html`,
+    ticker: `http://127.0.0.1:${PORT}/ticker.html`,
+    scene: `http://127.0.0.1:${PORT}/scene.html`,
   },
 }));
 
+ipcMain.handle('status', () => {
+  const dayStart = new Date().setHours(0, 0, 0, 0);
+  return {
+    overlays: overlay.clients(),
+    live: live.status(),
+    queue: queue.length + (playing ? 1 : 0),
+    uptime: Date.now() - startedAt,
+    eventsToday: settings.events.filter((item) => item.at >= dayStart).length,
+  };
+});
+
+ipcMain.handle('replay-event', (_event, index) => {
+  const item = settings.events[index];
+  if (!item || !item.kind) return { ok: false, error: 'That event cannot be replayed.' };
+  return pushAlert(item.kind, item.data || {});
+});
+
+ipcMain.handle('clear-events', () => {
+  settings.events = [];
+  saveSettings(settings);
+  broadcastState();
+  return settings;
+});
+
+ipcMain.handle('clear-chat', () => {
+  settings.chat = [];
+  saveSettings(settings);
+  broadcastState();
+  return settings;
+});
+
+ipcMain.handle('scene', (_event, next) => {
+  settings.scene = { ...settings.scene, ...(next || {}) };
+  if (next && next.mode && next.mode !== 'off') {
+    const minutes = Number(settings.scene.minutes) || 0;
+    settings.scene.endsAt = minutes > 0 ? Date.now() + minutes * 60000 : 0;
+  }
+  saveSettings(settings);
+  broadcastState();
+  return settings;
+});
+
+ipcMain.handle('copy', (_event, text) => {
+  clipboard.writeText(String(text || ''));
+  return true;
+});
+
 ipcMain.handle('save', (_event, next) => {
-  settings = { ...settings, ...next };
+  const { events, chat, ...rest } = next || {};
+  settings = { ...settings, ...rest };
   saveSettings(settings);
   broadcastState();
   return settings;
@@ -207,7 +273,8 @@ ipcMain.handle('push-chat', (_event, line) => {
   if (!text) return settings.chat;
   settings.chat.push({ name: 'you', text, at: Date.now() });
   settings.chat = settings.chat.slice(-80);
-  const command = settings.commands.find((item) => text.toLowerCase().startsWith(item.name.toLowerCase()));
+  const word = text.split(/\s+/)[0].toLowerCase();
+  const command = settings.commands.find((item) => item.enabled !== false && item.name && word === item.name.toLowerCase());
   if (command) {
     const name = text.split(/\s+/).slice(1).join(' ') || 'someone';
     const reply = fill(command.reply, {
